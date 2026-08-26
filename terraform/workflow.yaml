@@ -1,0 +1,34 @@
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - project_id: "${project_id}"
+          - location: "${location}"
+          - job_name: "${job_name}"
+
+    - run_sync_job:
+        call: googleapis.run.v2.projects.locations.jobs.run
+        args:
+          name: $${"projects/" + project_id + "/locations/" + location + "/jobs/" + job_name}
+        result: sync_result
+
+    - wait_for_job:
+        call: googleapis.run.v2.projects.locations.jobs.get
+        args:
+          name: $${sync_result.metadata.name}
+        result: job_state
+
+    - check_done:
+        switch:
+          - condition: $${job_state.status.conditions[0].type == "Ready"}
+            next: finish
+          - condition: $${job_state.status.conditions[0].status == "False"}
+            next: fail
+        next: wait_for_job
+
+    - finish:
+        return: $${"Sync completed: " + sync_result.metadata.name}
+
+    - fail:
+        raise: $${"Cloud Run Job failed: " + job_state.status.conditions[0].message}

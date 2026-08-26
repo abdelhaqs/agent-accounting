@@ -1,0 +1,11 @@
+project_id = "your-gcp-project"
+region     = "us-central1"
+
+# Container image must already exist in Artifact Registry.
+sync_image = "us-central1-docker.pkg.dev/your-gcp-project/zerion/zerion-sync:latest"
+
+# Paste your Zerion API key here. It will be stored in Secret Manager.
+zerion_api_key = "YOUR_ZERION_API_KEY"
+
+# Optional: only sync Base chain data.
+chain_ids = "base"

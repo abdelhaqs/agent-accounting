@@ -1,0 +1,9 @@
+agents:
+  - name: Yieldseeker Base Agent 2
+    address: "0xe51b7dba38e732a19838c3f23816df7092441597"
+  - name: ZyFAI Base Agent 2
+    address: "0xBf96c935F7cB35b86Efaa0693D81d875f4B4e7eb"
+  - name: Mamo Base Agent 2
+    address: "0x53d78cc346e05f153401ac4c0c7626062e0b9a40"
+  - name: Surfliquid Base Agent 1
+    address: "0x0373beEef981B60dD35D05db9D32DDc100474a11"
