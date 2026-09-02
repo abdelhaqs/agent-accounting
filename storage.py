@@ -29,6 +29,7 @@ class Transfer:
     amount_float: float | None
     price: float | None
     usd_value: float | None
+    provider: str = "zerion"
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,7 @@ class Balance:
     price: float | None
     usd_value: float | None
     is_receipt_token: bool
+    provider: str = "zerion"
 
 
 class Storage:
@@ -94,6 +96,7 @@ class Storage:
                     amount_float REAL,
                     price REAL,
                     usd_value REAL,
+                    provider TEXT NOT NULL DEFAULT 'zerion',
                     UNIQUE(wallet, tx_id, token_id, direction, sender, recipient, amount_raw)
                 );
 
@@ -115,7 +118,10 @@ class Storage:
                     usd_value REAL,
                     is_receipt_token INTEGER NOT NULL DEFAULT 0,
                     updated_at TEXT NOT NULL,
-                    UNIQUE(wallet, chain, token_id, token_address, is_receipt_token)
+                    provider TEXT NOT NULL DEFAULT 'zerion',
+                    -- position_type is part of the key: the same token can appear in
+                    -- several distinct protocol positions (e.g. two Morpho vaults).
+                    UNIQUE(wallet, chain, token_id, token_address, is_receipt_token, position_type)
                 );
                 """
             )
@@ -125,6 +131,11 @@ class Storage:
                 conn.execute("ALTER TABLE transfers ADD COLUMN agent_name TEXT")
             if not self._column_exists(conn, "balances", "agent_name"):
                 conn.execute("ALTER TABLE balances ADD COLUMN agent_name TEXT")
+            # Migration: add provider column (zerion/debank) to existing databases.
+            if not self._column_exists(conn, "transfers", "provider"):
+                conn.execute("ALTER TABLE transfers ADD COLUMN provider TEXT NOT NULL DEFAULT 'zerion'")
+            if not self._column_exists(conn, "balances", "provider"):
+                conn.execute("ALTER TABLE balances ADD COLUMN provider TEXT NOT NULL DEFAULT 'zerion'")
 
             # Create indexes after migration so agent_name is guaranteed to exist.
             conn.executescript(
@@ -155,11 +166,11 @@ class Storage:
                 INSERT OR IGNORE INTO transfers (
                     wallet, agent_name, tx_id, tx_hash, chain, mined_at, direction, sender, recipient,
                     token_id, token_name, token_symbol, token_address, chain_id, decimals,
-                    amount_raw, amount_float, price, usd_value
+                    amount_raw, amount_float, price, usd_value, provider
                 ) VALUES (
                     :wallet, :agent_name, :tx_id, :tx_hash, :chain, :mined_at, :direction, :sender, :recipient,
                     :token_id, :token_name, :token_symbol, :token_address, :chain_id, :decimals,
-                    :amount_raw, :amount_float, :price, :usd_value
+                    :amount_raw, :amount_float, :price, :usd_value, :provider
                 )
                 """,
                 [self._transfer_row(t) for t in transfers],
@@ -175,11 +186,11 @@ class Storage:
                     INSERT INTO balances (
                         wallet, agent_name, chain, position_type, token_id, token_name, token_symbol,
                         token_address, chain_id, decimals, balance_raw, balance_float, price,
-                        usd_value, is_receipt_token, updated_at
+                        usd_value, is_receipt_token, updated_at, provider
                     ) VALUES (
                         :wallet, :agent_name, :chain, :position_type, :token_id, :token_name, :token_symbol,
                         :token_address, :chain_id, :decimals, :balance_raw, :balance_float, :price,
-                        :usd_value, :is_receipt_token, :updated_at
+                        :usd_value, :is_receipt_token, :updated_at, :provider
                     )
                     """,
                     [self._balance_row(b) for b in balances],
@@ -239,6 +250,7 @@ class Storage:
             "amount_float": t.amount_float,
             "price": t.price,
             "usd_value": t.usd_value,
+            "provider": t.provider,
         }
 
     @staticmethod
@@ -260,4 +272,5 @@ class Storage:
             "usd_value": b.usd_value,
             "is_receipt_token": int(b.is_receipt_token),
             "updated_at": datetime.now(timezone.utc).isoformat(),
+            "provider": b.provider,
         }

@@ -55,13 +55,15 @@ This syncs all agents and exports both processed and raw JSON into per-agent fol
 ```text
 output/
 ├── yieldseeker_base_agent_2/
-│   ├── transfers.json
-│   ├── balances.json
-│   ├── raw_transactions.json
-│   └── raw_positions.json
-├── zyfai_base_agent_2/
-│   └── ...
-└── ...
+│   ├── 20260829_190255/
+│   │   ├── transfers.json
+│   │   ├── balances.json
+│   │   ├── raw_transactions_20260829_190255.json
+│   │   └── raw_positions_20260829_190255.json
+│   └── 20260829_193044/
+│       └── ...
+└── zyfai_base_agent_2/
+    └── ...
 ```
 
 ### Optional flags

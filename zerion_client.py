@@ -103,6 +103,19 @@ class ZerionClient:
             params = dict(parse_qsl(parsed.query))
             logger.debug("Fetching next page: %s", next_url)
 
+    def get_portfolio(
+        self,
+        wallet: str,
+        currency: str = "usd",
+        chain_ids: list[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch the portfolio aggregate (total positions value) for cross-checking."""
+        params: dict[str, Any] = {"currency": currency}
+        chain_filter = self._chain_ids_param(chain_ids)
+        if chain_filter:
+            params["filter[chain_ids]"] = chain_filter
+        return self._get(f"/wallets/{wallet}/portfolio", params)
+
     def get_positions(
         self,
         wallet: str,

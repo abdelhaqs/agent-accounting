@@ -26,6 +26,13 @@ variable "zerion_api_key" {
   sensitive   = true
 }
 
+variable "uniblock_api_key" {
+  description = "Uniblock API key (DeBank fallback) to store in Secret Manager"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "chain_ids" {
   description = "Comma-separated chain ids to sync (default: base)"
   type        = string

@@ -246,15 +246,299 @@ def sync_balances(
     logger.info("Balance sync complete for %s. Positions stored: %d", wallet, len(balances))
 
 
-def export_json(storage: Storage, wallet: str, agent_dir: Path):
-    """Write transfers.json and balances.json to *agent_dir*."""
-    agent_dir.mkdir(parents=True, exist_ok=True)
+def _debank_balance(
+    wallet: str,
+    agent_name: str | None,
+    token: dict[str, Any],
+    position_type: str,
+    is_receipt: bool,
+) -> Balance | None:
+    """Map a DeBank token object (wallet or protocol supply) to a Balance."""
+    if not token.get("symbol") and not token.get("name"):
+        return None
+    amount = token.get("amount")
+    price = token.get("price")
+    raw = token.get("raw_amount")
+    return Balance(
+        wallet=wallet,
+        agent_name=agent_name,
+        chain=token.get("chain", "unknown"),
+        position_type=position_type,
+        token_id=token.get("id"),
+        token_name=token.get("name"),
+        token_symbol=token.get("symbol") or token.get("optimized_symbol"),
+        token_address=token.get("id"),
+        chain_id=token.get("chain"),
+        decimals=token.get("decimals"),
+        balance_raw=str(raw) if raw is not None else None,
+        balance_float=amount,
+        price=price,
+        usd_value=(amount or 0) * (price or 0) if amount is not None else None,
+        is_receipt_token=is_receipt,
+        provider="debank",
+    )
+
+
+def _debank_transfer(
+    wallet: str,
+    agent_name: str | None,
+    tx_id: str,
+    tx_hash: str,
+    chain: str,
+    mined_at: datetime,
+    direction: str,
+    sender: str,
+    recipient: str,
+    entry: dict[str, Any],
+    token_dict: dict[str, Any],
+) -> Transfer | None:
+    """Map a DeBank history send/receive entry to a Transfer."""
+    token_id = entry.get("token_id")
+    token = token_dict.get(token_id, {})
+    amount = entry.get("amount")
+    price = token.get("price")
+    return Transfer(
+        wallet=wallet,
+        agent_name=agent_name,
+        tx_id=tx_id,
+        tx_hash=tx_hash,
+        chain=chain,
+        mined_at=mined_at,
+        direction=direction,
+        sender=(sender or "").lower(),
+        recipient=(recipient or "").lower(),
+        token_id=token_id,
+        token_name=token.get("name"),
+        token_symbol=token.get("symbol") or token.get("optimized_symbol"),
+        token_address=token_id,
+        chain_id=chain,
+        decimals=token.get("decimals"),
+        amount_raw=None,
+        amount_float=amount,
+        price=price,
+        usd_value=(amount or 0) * (price or 0) if amount is not None else None,
+        provider="debank",
+    )
+
+
+def sync_via_debank(
+    uniblock: "UniblockClient",
+    wallet: str,
+    storage: Storage,
+    agent_name: str | None = None,
+    chain_ids: list[str] | str | None = None,
+) -> dict[str, Any]:
+    """Fallback sync via Uniblock/DeBank for wallets Zerion doesn't index.
+
+    Fetches wallet tokens, DeFi protocol positions, and transaction history,
+    then persists them with provider='debank'. Returns raw responses for archiving.
+    """
+    wallet_lower = wallet.lower()
+    chain_filter = (
+        chain_ids if isinstance(chain_ids, str)
+        else ",".join(chain_ids) if chain_ids else None
+    )
+    chains = set(chain_filter.split(",")) if chain_filter else None
+
+    logger.info("DeBank fallback: fetching token list for %s", wallet)
+    token_list = uniblock.get_all_token_list(wallet)
+    logger.info("DeBank fallback: fetching protocol positions for %s", wallet)
+    protocols = uniblock.get_complex_protocol_list(wallet, chain_ids=chain_filter)
+    logger.info("DeBank fallback: fetching history for %s", wallet)
+    history = uniblock.get_all_history_list(wallet, chain_ids=chain_filter)
+
+    balances: list[Balance] = []
+    for t in token_list:
+        if chains and t.get("chain") not in chains:
+            continue
+        b = _debank_balance(wallet_lower, agent_name, t, "wallet", is_receipt=False)
+        if b:
+            balances.append(b)
+
+    for p in protocols:
+        pname = p.get("name") or p.get("id") or "protocol"
+        for item in p.get("portfolio_item_list", []):
+            itype = item.get("name") or "deposited"
+            # Distinguish multiple vaults/pools of the same type within one protocol
+            # (e.g. two Morpho USDC vaults) via the pool id.
+            pool_id = (item.get("pool") or {}).get("id") or ""
+            pool_suffix = f" #{pool_id[-6:]}" if pool_id else ""
+            detail = item.get("detail", {})
+            for key in ("supply_token_list", "reward_token_list"):
+                for t in detail.get(key) or []:
+                    if chains and t.get("chain") not in chains:
+                        continue
+                    b = _debank_balance(
+                        wallet_lower, agent_name, t,
+                        f"{pname}: {itype}{pool_suffix}", is_receipt=True,
+                    )
+                    if b:
+                        balances.append(b)
+
+    # The balances UNIQUE key includes position_type, so the same token can live in
+    # several protocol positions (e.g. two Morpho vaults). Dedupe only exact dupes.
+    seen: set[tuple] = set()
+    unique_balances: list[Balance] = []
+    for b in balances:
+        k = (b.chain, b.token_id, b.token_address, b.is_receipt_token, b.position_type)
+        if k in seen:
+            continue
+        seen.add(k)
+        unique_balances.append(b)
+    balances = unique_balances
+
+    storage.replace_balances(wallet_lower, balances)
+    logger.info("DeBank fallback: stored %d balances for %s", len(balances), wallet)
+
+    transfers: list[Transfer] = []
+    token_dict = history.get("token_dict", {})
+    for h in history.get("history_list", []):
+        tx_hash = h.get("tx", {}).get("id") or h.get("id", "")
+        tx_id = f"{tx_hash}:{h.get('idx', 0)}"
+        if h.get("time_at"):
+            mined_at = datetime.fromtimestamp(h["time_at"], tz=timezone.utc)
+        else:
+            mined_at = datetime.now(timezone.utc)
+        chain = h.get("chain", "unknown")
+        for send in h.get("sends", []):
+            tr = _debank_transfer(
+                wallet_lower, agent_name, tx_id, tx_hash, chain, mined_at,
+                "out", wallet_lower, send.get("to_addr", ""), send, token_dict,
+            )
+            if tr:
+                transfers.append(tr)
+        for recv in h.get("receives", []):
+            tr = _debank_transfer(
+                wallet_lower, agent_name, tx_id, tx_hash, chain, mined_at,
+                "in", recv.get("from_addr", ""), wallet_lower, recv, token_dict,
+            )
+            if tr:
+                transfers.append(tr)
+
+    storage.save_transfers(transfers)
+    logger.info("DeBank fallback: stored %d transfers for %s", len(transfers), wallet)
+
+    return {"tokens": token_list, "protocols": protocols, "history": history}
+
+
+RECONCILE_TOLERANCE_PCT = 1.0
+RECONCILE_TOLERANCE_USD = 1.0
+
+
+def reconcile_balances(
+    wallet: str,
+    agent_name: str | None,
+    provider: str,
+    storage: Storage,
+    zerion: ZerionClient,
+    uniblock: "UniblockClient | None",
+    chain_ids: list[str] | str | None,
+    run_timestamp: str,
+) -> dict[str, Any]:
+    """Cross-check stored balances against provider aggregate endpoints.
+
+    Three numbers per agent:
+    - computed: SUM(usd_value) of the rows we stored
+    - same-provider aggregate: Zerion /portfolio or DeBank /total_balance
+      (note: Zerion /portfolio is known to miss deposited positions for some
+      wallets, so it is recorded for information but never decides the status)
+    - cross-provider aggregate: the other provider's total (the real check)
+
+    Status is MISMATCH when the deciding delta exceeds 1% and $1.
+    """
+    computed = sum(b["usd_value"] or 0 for b in storage.get_balances(wallet))
+    chain_filter = (
+        chain_ids if isinstance(chain_ids, str)
+        else ",".join(chain_ids) if chain_ids else None
+    )
+    chains = set(chain_filter.split(",")) if chain_filter else None
+
+    def zerion_total() -> float | None:
+        p = zerion.get_portfolio(wallet, chain_ids=chain_ids)
+        return p.get("data", {}).get("attributes", {}).get("total", {}).get("positions")
+
+    def debank_total() -> float | None:
+        if uniblock is None:
+            return None
+        tb = uniblock.get_total_balance(wallet)
+        chain_list = tb.get("chain_list", [])
+        if chains:
+            return sum(c.get("usd_value", 0) or 0 for c in chain_list if c.get("id") in chains)
+        return tb.get("total_usd_value")
+
+    same_provider_total: float | None = None
+    cross_total: float | None = None
+    try:
+        same_provider_total = zerion_total() if provider == "zerion" else debank_total()
+    except Exception as exc:
+        logger.warning("Reconcile: same-provider total failed for %s: %s", wallet, exc)
+    try:
+        cross_total = debank_total() if provider == "zerion" else zerion_total()
+    except Exception as exc:
+        logger.warning("Reconcile: cross-provider total failed for %s: %s", wallet, exc)
+
+    def delta_pct(ref: float | None) -> float | None:
+        if ref is None:
+            return None
+        if abs(ref) < 1e-9:
+            return 0.0 if abs(computed) < 1e-9 else 100.0
+        return round((computed - ref) / ref * 100, 3)
+
+    # For zerion agents the /portfolio endpoint is unreliable (misses deposits),
+    # so the cross-provider delta decides; for debank agents the same-provider
+    # delta decides (it catches mapping bugs like dropped positions).
+    deciding_delta = delta_pct(cross_total) if provider == "zerion" else delta_pct(same_provider_total)
+    if deciding_delta is None:
+        deciding_delta = delta_pct(same_provider_total) or delta_pct(cross_total)
+
+    if deciding_delta is None:
+        status = "SKIP"
+    else:
+        ref = cross_total if provider == "zerion" else same_provider_total
+        within = abs(deciding_delta) <= RECONCILE_TOLERANCE_PCT or (
+            ref is not None and abs(computed - ref) <= RECONCILE_TOLERANCE_USD
+        )
+        status = "OK" if within else "MISMATCH"
+
+    record = {
+        "run_timestamp": run_timestamp,
+        "agent_name": agent_name,
+        "wallet": wallet.lower(),
+        "provider": provider,
+        "computed_usd": round(computed, 4),
+        "same_provider_total_usd": round(same_provider_total, 4) if same_provider_total is not None else None,
+        "cross_provider_total_usd": round(cross_total, 4) if cross_total is not None else None,
+        "same_provider_delta_pct": delta_pct(same_provider_total),
+        "cross_provider_delta_pct": delta_pct(cross_total),
+        "status": status,
+    }
+    log_fn = logger.info if status == "OK" else logger.warning
+    log_fn(
+        "Reconcile %s (%s): stored=$%.2f | same-provider=$%s | cross-provider=$%s -> %s",
+        agent_name,
+        provider,
+        computed,
+        f"{same_provider_total:,.2f}" if same_provider_total is not None else "n/a",
+        f"{cross_total:,.2f}" if cross_total is not None else "n/a",
+        status,
+    )
+    return record
+
+
+def export_json(
+    storage: Storage, wallet: str, run_dir: Path, run_timestamp: str
+) -> tuple[int, int]:
+    """Write timestamped transfers/balances JSON files to *run_dir*.
+
+    Returns (transfers_count, balances_count).
+    """
+    run_dir.mkdir(parents=True, exist_ok=True)
 
     transfers = storage.get_transfers(wallet)
     balances = storage.get_balances(wallet)
 
-    transfers_path = agent_dir / "transfers.json"
-    balances_path = agent_dir / "balances.json"
+    transfers_path = run_dir / f"transfers_{run_timestamp}.json"
+    balances_path = run_dir / f"balances_{run_timestamp}.json"
 
     transfers_path.write_text(json.dumps(transfers, indent=2), encoding="utf-8")
     balances_path.write_text(json.dumps(balances, indent=2), encoding="utf-8")
@@ -266,18 +550,20 @@ def export_json(storage: Storage, wallet: str, agent_dir: Path):
         len(balances),
         balances_path,
     )
+    return len(transfers), len(balances)
 
 
 def export_raw(
     raw_transactions: list[dict[str, Any]],
     raw_positions: list[dict[str, Any]],
-    agent_dir: Path,
+    run_dir: Path,
+    run_timestamp: str,
 ):
-    """Write raw API page responses to *agent_dir*."""
-    agent_dir.mkdir(parents=True, exist_ok=True)
+    """Write raw API page responses to *run_dir* with timestamped filenames."""
+    run_dir.mkdir(parents=True, exist_ok=True)
 
-    tx_path = agent_dir / "raw_transactions.json"
-    pos_path = agent_dir / "raw_positions.json"
+    tx_path = run_dir / f"raw_transactions_{run_timestamp}.json"
+    pos_path = run_dir / f"raw_positions_{run_timestamp}.json"
 
     tx_path.write_text(json.dumps(raw_transactions, indent=2), encoding="utf-8")
     pos_path.write_text(json.dumps(raw_positions, indent=2), encoding="utf-8")
@@ -294,6 +580,70 @@ def export_raw(
 def _safe_name(name: str) -> str:
     """Make a filesystem-safe name from an agent name or address."""
     return "".join(c if c.isalnum() else "_" for c in name).lower()
+
+
+def write_run_log(
+    logs_dir: Path,
+    run_timestamp: str,
+    entries: list[dict[str, Any]],
+    failed_agents: list[str],
+    reconciliation: list[dict[str, Any]] | None = None,
+) -> Path:
+    """Write a run summary log to <logs_dir>/sync_log_<timestamp>.txt."""
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    lines = [f"Zerion sync run: {run_timestamp}", ""]
+    for e in entries:
+        lines.append(f"Agent: {e['agent']} ({e['wallet']})")
+        lines.append(f"  Transfers exported: {e['transfers']}")
+        lines.append(f"  Balances exported: {e['balances']}")
+        lines.append(f"  Raw transaction pages: {e['raw_tx']}")
+        lines.append(f"  Raw position pages: {e['raw_pos']}")
+        lines.append(f"  Files archived: {', '.join(e['files'])}")
+        lines.append("")
+
+    if reconciliation:
+        lines.append("Balance reconciliation:")
+        for r in reconciliation:
+            same = f"${r['same_provider_total_usd']:,.2f}" if r["same_provider_total_usd"] is not None else "n/a"
+            cross = f"${r['cross_provider_total_usd']:,.2f}" if r["cross_provider_total_usd"] is not None else "n/a"
+            lines.append(
+                f"  {r['agent_name']} [{r['provider']}]: stored=${r['computed_usd']:,.2f} "
+                f"| same-provider={same} | cross-provider={cross} -> {r['status']}"
+            )
+        lines.append("")
+
+    if failed_agents:
+        lines.append(f"Failed agents: {', '.join(failed_agents)}")
+    else:
+        lines.append("All agents completed successfully.")
+
+    log_path = logs_dir / f"sync_log_{run_timestamp}.txt"
+    log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    logger.info("Wrote run log to %s", log_path)
+    return log_path
+
+
+def move_to_archive(run_dir: Path, archive_dir: Path, prefix: str) -> None:
+    """Move JSON files from the staging run dir into the flat archive folder.
+
+    Each file is renamed to <prefix>_<filename> so multiple agents can share
+    one flat Archive folder without collisions. Staging dir is removed after.
+    """
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    moved = 0
+    for f in sorted(run_dir.glob("*.json")):
+        f.replace(archive_dir / f"{prefix}_{f.name}")
+        moved += 1
+
+    # Remove now-empty staging dir.
+    try:
+        run_dir.rmdir()
+    except OSError:
+        pass
+
+    logger.info("Moved %d file(s) from %s to %s (prefix=%s)", moved, run_dir, archive_dir, prefix)
 
 
 def main():
@@ -322,8 +672,42 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="./output",
-        help="Directory for per-agent exports (default: ./output)",
+        default="./RECV",
+        help="Staging directory for received JSON exports before archiving (default: ./RECV)",
+    )
+    parser.add_argument(
+        "--archive-dir",
+        type=str,
+        default="./Archive",
+        help="Final destination for timestamped JSON files (default: ./Archive)",
+    )
+    parser.add_argument(
+        "--logs-dir",
+        type=str,
+        default="./logs",
+        help="Directory for per-run summary logs (default: ./logs)",
+    )
+    parser.add_argument(
+        "--bq-dataset",
+        type=str,
+        default=os.getenv("BQ_DATASET", "agent_accounting"),
+        help="BigQuery dataset for balances/transfers tables (default: agent_accounting; env: BQ_DATASET)",
+    )
+    parser.add_argument(
+        "--bq-project",
+        type=str,
+        default=os.getenv("BQ_PROJECT"),
+        help="BigQuery project id (default: inferred from credentials; env: BQ_PROJECT)",
+    )
+    parser.add_argument(
+        "--skip-bq",
+        action="store_true",
+        help="Skip loading data into BigQuery",
+    )
+    parser.add_argument(
+        "--skip-uniblock",
+        action="store_true",
+        help="Disable the Uniblock/DeBank fallback for Zerion-unsupported wallets",
     )
     parser.add_argument(
         "--no-export",
@@ -360,8 +744,32 @@ def main():
     client = ZerionClient(api_key, rate_limit_delay=args.rate_limit_delay)
     storage = Storage(args.db_path)
     output_dir = Path(args.output_dir)
+    archive_dir = Path(args.archive_dir)
+    logs_dir = Path(args.logs_dir)
+    run_timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+
+    bq_client = None
+    if not args.skip_bq:
+        try:
+            from bigquery_loader import get_client
+
+            bq_client = get_client(args.bq_project)
+            logger.info("BigQuery loading enabled (dataset=%s)", args.bq_dataset)
+        except Exception as exc:
+            logger.error("BigQuery client init failed, continuing without BQ: %s", exc)
+
+    uniblock_client = None
+    uniblock_key = os.getenv("UNIBLOCK_API_KEY")
+    if uniblock_key and not args.skip_uniblock:
+        from uniblock_client import UniblockClient
+
+        uniblock_client = UniblockClient(uniblock_key, rate_limit_delay=args.rate_limit_delay)
+        logger.info("Uniblock/DeBank fallback enabled for Zerion-unsupported wallets")
 
     failed_agents: list[str] = []
+    run_entries: list[dict[str, Any]] = []
+    reconciliation_records: list[dict[str, Any]] = []
+    staged: list[tuple[Path, Path]] = []  # (run_dir, archive_agent_dir)
 
     for agent in agents:
         agent_name = agent.get("name")
@@ -373,35 +781,104 @@ def main():
         try:
             raw_tx_pages: list[dict[str, Any]] = []
             raw_pos_pages: list[dict[str, Any]] = []
+            debank_raw: dict[str, Any] | None = None
+            provider = "zerion"
 
-            if args.full_resync:
-                logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
-                storage.clear_transfers(wallet_lower)
+            try:
+                if args.full_resync:
+                    logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
+                    storage.clear_transfers(wallet_lower)
 
-            logger.info("Starting transfer sync for %s (chains=%s)", wallet, chain_ids or "all")
-            sync_transfers(
-                client,
-                wallet,
-                storage,
-                agent_name=agent_name,
-                chain_ids=chain_ids,
-                raw_pages=raw_tx_pages if not args.no_export else None,
-            )
+                logger.info("Starting transfer sync for %s (chains=%s)", wallet, chain_ids or "all")
+                sync_transfers(
+                    client,
+                    wallet,
+                    storage,
+                    agent_name=agent_name,
+                    chain_ids=chain_ids,
+                    raw_pages=raw_tx_pages if not args.no_export else None,
+                )
 
-            logger.info("Starting balance sync for %s (chains=%s)", wallet, chain_ids or "all")
-            sync_balances(
-                client,
-                wallet,
-                storage,
-                agent_name=agent_name,
-                chain_ids=chain_ids,
-                raw_pages=raw_pos_pages if not args.no_export else None,
-            )
+                logger.info("Starting balance sync for %s (chains=%s)", wallet, chain_ids or "all")
+                sync_balances(
+                    client,
+                    wallet,
+                    storage,
+                    agent_name=agent_name,
+                    chain_ids=chain_ids,
+                    raw_pages=raw_pos_pages if not args.no_export else None,
+                )
+            except Exception as exc:
+                if uniblock_client is None:
+                    raise
+                logger.warning(
+                    "Zerion sync failed for '%s' (%s): %s — falling back to Uniblock/DeBank",
+                    agent_name,
+                    wallet,
+                    exc,
+                )
+                debank_raw = sync_via_debank(
+                    uniblock_client,
+                    wallet,
+                    storage,
+                    agent_name=agent_name,
+                    chain_ids=chain_ids,
+                )
+                provider = "debank"
+
+            if bq_client is not None:
+                try:
+                    from bigquery_loader import load_balances, load_transfers
+
+                    load_transfers(bq_client, args.bq_dataset, storage.get_transfers(wallet_lower))
+                    load_balances(
+                        bq_client, args.bq_dataset, wallet_lower, storage.get_balances(wallet_lower)
+                    )
+                except Exception as exc:
+                    logger.error("BigQuery load failed for %s: %s", wallet, exc, exc_info=True)
+
+            try:
+                reconciliation_records.append(
+                    reconcile_balances(
+                        wallet,
+                        agent_name,
+                        provider,
+                        storage,
+                        client,
+                        uniblock_client,
+                        chain_ids,
+                        run_timestamp,
+                    )
+                )
+            except Exception as exc:
+                logger.error("Reconciliation failed for %s: %s", wallet, exc, exc_info=True)
 
             if not args.no_export:
                 agent_dir = output_dir / _safe_name(agent_name or wallet_lower)
-                export_json(storage, wallet_lower, agent_dir)
-                export_raw(raw_tx_pages, raw_pos_pages, agent_dir)
+                run_dir = agent_dir / run_timestamp
+                transfers_count, balances_count = export_json(
+                    storage, wallet_lower, run_dir, run_timestamp
+                )
+                export_raw(raw_tx_pages, raw_pos_pages, run_dir, run_timestamp)
+                if debank_raw is not None:
+                    run_dir.mkdir(parents=True, exist_ok=True)
+                    for name, payload in debank_raw.items():
+                        (run_dir / f"raw_debank_{name}_{run_timestamp}.json").write_text(
+                            json.dumps(payload, indent=2), encoding="utf-8"
+                        )
+                prefix = _safe_name(agent_name or wallet_lower)
+                staged.append((run_dir, prefix))
+                run_entries.append(
+                    {
+                        "agent": agent_name,
+                        "wallet": wallet,
+                        "transfers": transfers_count,
+                        "balances": balances_count,
+                        "raw_tx": len(raw_tx_pages),
+                        "raw_pos": len(raw_pos_pages),
+                        "files": [f"{prefix}_{f.name}" for f in sorted(run_dir.glob("*.json"))],
+                    }
+                )
 
         except HTTPError as exc:
             logger.error(
@@ -421,6 +898,19 @@ def main():
                 exc_info=True,
             )
             failed_agents.append(wallet)
+
+    if bq_client is not None and reconciliation_records:
+        try:
+            from bigquery_loader import save_reconciliation
+
+            save_reconciliation(bq_client, args.bq_dataset, reconciliation_records)
+        except Exception as exc:
+            logger.error("BigQuery reconciliation load failed: %s", exc, exc_info=True)
+
+    if not args.no_export:
+        write_run_log(logs_dir, run_timestamp, run_entries, failed_agents, reconciliation_records)
+        for run_dir, prefix in staged:
+            move_to_archive(run_dir, archive_dir, prefix)
 
     if failed_agents:
         logger.warning("Completed with %d failed agent(s): %s", len(failed_agents), failed_agents)

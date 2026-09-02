@@ -279,14 +279,15 @@ agents:
         sync_balances(client, self.wallet, self.storage, agent_name="Test Agent")
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            agent_dir = Path(tmpdir) / "test_agent"
-            export_json(self.storage, self.wallet, agent_dir)
-            export_raw([{"page": 1}], [{"page": 1}], agent_dir)
+            run_timestamp = "20260829_120000"
+            run_dir = Path(tmpdir) / "test_agent" / run_timestamp
+            export_json(self.storage, self.wallet, run_dir)
+            export_raw([{"page": 1}], [{"page": 1}], run_dir, run_timestamp)
 
-            transfers_path = agent_dir / "transfers.json"
-            balances_path = agent_dir / "balances.json"
-            raw_tx_path = agent_dir / "raw_transactions.json"
-            raw_pos_path = agent_dir / "raw_positions.json"
+            transfers_path = run_dir / "transfers.json"
+            balances_path = run_dir / "balances.json"
+            raw_tx_path = run_dir / f"raw_transactions_{run_timestamp}.json"
+            raw_pos_path = run_dir / f"raw_positions_{run_timestamp}.json"
 
             self.assertTrue(transfers_path.exists())
             self.assertTrue(balances_path.exists())
@@ -352,7 +353,9 @@ agents:
                             main_func()
 
                         # Bad agent should have no output folder; good agent should.
-                        self.assertTrue((Path(tmpdir) / "good_agent").exists())
+                        good_agent_dir = Path(tmpdir) / "good_agent"
+                        self.assertTrue(good_agent_dir.exists())
+                        self.assertTrue(any(good_agent_dir.iterdir()))
                         self.assertFalse((Path(tmpdir) / "bad_agent").exists())
         finally:
             Path(agents_path).unlink(missing_ok=True)
