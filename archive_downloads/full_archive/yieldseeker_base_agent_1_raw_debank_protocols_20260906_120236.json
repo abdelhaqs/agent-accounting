@@ -1,0 +1,79 @@
+[
+  {
+    "id": "base_spark",
+    "chain": "base",
+    "name": "Spark",
+    "site_url": "https://app.spark.finance",
+    "logo_url": "https://static.debank.com/image/project/logo_url/spark/0b95814b57b65a74890992aa2ff915cf.png",
+    "has_supported_portfolio": true,
+    "tvl": 5951633.165481917,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 2015.075096980604,
+          "debt_usd_value": 0,
+          "net_usd_value": 2015.075096980604
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 2015.478112
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 0.9998000399920016,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 2015.478112
+          }
+        ],
+        "update_at": 1788692246.0,
+        "name": "Yield",
+        "detail_types": [
+          "common"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 0.9998000399920016,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 2015.478112
+            }
+          ],
+          "description": "Spark USDC Vault"
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0x3128a0f7f0ea68e7b7c9b00afa7e41045828e858",
+          "chain": "base",
+          "project_id": "base_spark",
+          "adapter_id": "redeemable_tokenized_vault_yield",
+          "controller": "0x3128a0f7f0ea68e7b7c9b00afa7e41045828e858",
+          "index": null,
+          "time_at": 1741036387
+        }
+      }
+    ]
+  }
+]

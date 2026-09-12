@@ -1,0 +1,34 @@
+{
+  "onchain_total_usd": 47355.7108,
+  "onchain_unverified_usd": 4.1416,
+  "onchain_delta_pct": -0.039,
+  "details": [
+    {
+      "kind": "wallet_token",
+      "symbol": "FOMC",
+      "token_address": "0x8fe1a86aae0aad3bc59a135bb936082888fb64f7",
+      "onchain_raw": "3000000000000000000",
+      "onchain_amount": 3.0,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "unverified",
+      "protocol": "Merkl",
+      "pool": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+      "underlying_symbol": "USDC",
+      "usd_value": 4.141556311262253
+    },
+    {
+      "kind": "vault",
+      "protocol": "Morpho",
+      "vault_address": "0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c",
+      "underlying_symbol": "USDC",
+      "shares_raw": "46150609371798649585114",
+      "assets_raw": "47346239704",
+      "onchain_amount": 47346.239704,
+      "price": 1.0002000400080016,
+      "usd_value": 47355.71084616923
+    }
+  ]
+}

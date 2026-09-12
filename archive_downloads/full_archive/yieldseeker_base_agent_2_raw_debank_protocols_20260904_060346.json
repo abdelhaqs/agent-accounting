@@ -1,0 +1,334 @@
+[
+  {
+    "id": "base_merkl",
+    "chain": "base",
+    "name": "Merkl",
+    "site_url": "https://app.merkl.xyz",
+    "logo_url": "https://static.debank.com/image/project/logo_url/base_merkl/d7c85c3f12969282a4db46cd5891b3fd.png",
+    "has_supported_portfolio": true,
+    "tvl": 1556325.0330454193,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 0.078665,
+          "debt_usd_value": 0,
+          "net_usd_value": 0.078665
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 0.078665
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 1.0,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 0.078665
+          }
+        ],
+        "update_at": 1788498465.0,
+        "name": "Rewards",
+        "detail_types": [
+          "common"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 1.0,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 0.078665
+            }
+          ]
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+          "chain": "base",
+          "project_id": "base_merkl",
+          "adapter_id": "merkl_reward",
+          "controller": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+          "index": null,
+          "time_at": 1691171679
+        }
+      }
+    ]
+  },
+  {
+    "id": "base_moonwell",
+    "chain": "base",
+    "name": "Moonwell",
+    "site_url": "https://moonwell.fi",
+    "logo_url": "https://static.debank.com/image/project/logo_url/base_moonwell/c404f3c96c81c6dce2259517cb9ea5ce.png",
+    "has_supported_portfolio": true,
+    "tvl": 37763388.24555136,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 0.0328921508156762,
+          "debt_usd_value": 0,
+          "net_usd_value": 0.0328921508156762
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 4.7516548960617805e-08,
+          "0xa88594d404727625a9437c3f886c7643872296ae": 16.70279441329463
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 1.0,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 4.7516548960617805e-08
+          },
+          {
+            "id": "0xa88594d404727625a9437c3f886c7643872296ae",
+            "chain": "base",
+            "name": "WELL",
+            "symbol": "WELL",
+            "display_symbol": null,
+            "optimized_symbol": "WELL",
+            "decimals": 18,
+            "logo_url": "https://static.debank.com/image/mobm_token/logo_url/0x511ab53f793683763e5a8829738301368a2411e3/b82e97dd371cfdacb522ffebd7840729.png",
+            "protocol_id": "",
+            "price": 0.001969257507770478,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1704752551.0,
+            "amount": 16.70279441329463
+          }
+        ],
+        "update_at": 1788498466.0,
+        "name": "Lending",
+        "detail_types": [
+          "lending"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 1.0,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 4.7516548960617805e-08
+            }
+          ],
+          "reward_token_list": [
+            {
+              "id": "0xa88594d404727625a9437c3f886c7643872296ae",
+              "chain": "base",
+              "name": "WELL",
+              "symbol": "WELL",
+              "display_symbol": null,
+              "optimized_symbol": "WELL",
+              "decimals": 18,
+              "logo_url": "https://static.debank.com/image/mobm_token/logo_url/0x511ab53f793683763e5a8829738301368a2411e3/b82e97dd371cfdacb522ffebd7840729.png",
+              "protocol_id": "",
+              "price": 0.001969257507770478,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1704752551.0,
+              "amount": 16.70279441329463
+            }
+          ]
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c",
+          "chain": "base",
+          "project_id": "base_moonwell",
+          "adapter_id": "moonwell_proxy_lending",
+          "controller": "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c",
+          "index": null,
+          "time_at": 1691114127
+        }
+      }
+    ]
+  },
+  {
+    "id": "base_morphoblue",
+    "chain": "base",
+    "name": "Morpho",
+    "site_url": "https://app.morpho.org",
+    "logo_url": "https://static.debank.com/image/project/logo_url/morphoblue/cfe5f811a4fb96355e0fb367b5201f87.png",
+    "has_supported_portfolio": true,
+    "tvl": 4209052868.8295407,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 8520.256791,
+          "debt_usd_value": 0,
+          "net_usd_value": 8520.256791
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 8520.256791
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 1.0,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 8520.256791
+          }
+        ],
+        "update_at": 1788498466.0,
+        "name": "Yield",
+        "detail_types": [
+          "common"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 1.0,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 8520.256791
+            }
+          ],
+          "description": "Edge UltraYield USDC"
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0x5435bc53f2c61298167cdb11cdf0db2bfa259ca0",
+          "chain": "base",
+          "project_id": "base_morphoblue",
+          "adapter_id": "redeemable_tokenized_vault_yield",
+          "controller": "0x5435bc53f2c61298167cdb11cdf0db2bfa259ca0",
+          "index": null,
+          "time_at": 1762351795
+        }
+      },
+      {
+        "stats": {
+          "asset_usd_value": 2387.779587,
+          "debt_usd_value": 0,
+          "net_usd_value": 2387.779587
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 2387.779587
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 1.0,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 2387.779587
+          }
+        ],
+        "update_at": 1788498466.0,
+        "name": "Yield",
+        "detail_types": [
+          "common"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 1.0,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 2387.779587
+            }
+          ],
+          "description": "Yearn OG USDC"
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0xef417a2512c5a41f69ae4e021648b69a7cde5d03",
+          "chain": "base",
+          "project_id": "base_morphoblue",
+          "adapter_id": "redeemable_tokenized_vault_yield",
+          "controller": "0xef417a2512c5a41f69ae4e021648b69a7cde5d03",
+          "index": null,
+          "time_at": 1739820393
+        }
+      }
+    ]
+  }
+]

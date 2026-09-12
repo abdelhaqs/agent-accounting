@@ -1,0 +1,205 @@
+{
+  "onchain_total_usd": 2112.3555,
+  "onchain_unverified_usd": 4.2039,
+  "onchain_delta_pct": -0.005,
+  "details": [
+    {
+      "kind": "wallet_token",
+      "symbol": "WELL",
+      "token_address": "0xa88594d404727625a9437c3f886c7643872296ae",
+      "onchain_raw": "807920541891065967796",
+      "onchain_amount": 807.920541891066,
+      "price": 0.00211540606023873,
+      "usd_value": 1.7090800105077197
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x003afa6d1eddf81326106d19a59fd4b5f90cdb07",
+      "onchain_raw": "203600000000000000000",
+      "onchain_amount": 203.6,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "Basecat",
+      "token_address": "0x0aa9d7af5cc30abfd402cc0360d727f111fbab07",
+      "onchain_raw": "175100000000000000000",
+      "onchain_amount": 175.1,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x1d1dd64c58518c6727a308a5216a5701afae5b07",
+      "onchain_raw": "480145000000000000000",
+      "onchain_amount": 480.145,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "PIPEDOG",
+      "token_address": "0x22409cd6f62b90ea2b57acf997011f4490ad5b07",
+      "onchain_raw": "361170000000000000000",
+      "onchain_amount": 361.17,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x2a4332d0333473618fe76bced4270095547e6b07",
+      "onchain_raw": "280000000000000000000",
+      "onchain_amount": 280.0,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x2b31d3ed065f1f834d5c85efed49089f4c4f6b07",
+      "onchain_raw": "70300000000000000000",
+      "onchain_amount": 70.3,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "Anthropic",
+      "token_address": "0x33ec03d445c9d5cd70d80cf3a010c11cee779b07",
+      "onchain_raw": "308000000000000000000",
+      "onchain_amount": 308.0,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x3bf254af3338c89974b97a67d2e1e6066aa29b07",
+      "onchain_raw": "484407000000000000000",
+      "onchain_amount": 484.407,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x3f58e7054fcaa38c74c1f46a5206e479ed995b07",
+      "onchain_raw": "380500000000000000000",
+      "onchain_amount": 380.5,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "ASTEROID",
+      "token_address": "0x4b0333bcfb941a8bdd53313b40c9198117c94b07",
+      "onchain_raw": "957400000000000000000",
+      "onchain_amount": 957.4,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "\u6211\u7684\u5973\u53cb\u666f\u751c",
+      "token_address": "0x61ec89d844b6dd964e7a0c4d06c0653412645b07",
+      "onchain_raw": "861490000000000000000",
+      "onchain_amount": 861.49,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x73adfa3a448d63025d52e39f921369386e4fcb07",
+      "onchain_raw": "115000000000000000000",
+      "onchain_amount": 115.0,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x7649080d56b9a6062378fb26a01a04c840ce7b07",
+      "onchain_raw": "81320000000000000000",
+      "onchain_amount": 81.32,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "FLAP",
+      "token_address": "0x811b77a72acb667cb4b17d6a9208a86e83aedb07",
+      "onchain_raw": "500000000000000000000",
+      "onchain_amount": 500.0,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0x8ad5d75db9447f7300d74a151b9cd24ed1a2cb07",
+      "onchain_raw": "132000000000000000000",
+      "onchain_amount": 132.0,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "\u7f57\u5bbe\u6c49",
+      "token_address": "0x94eada3f64ec8b712f2dbfa9365c292e85020b07",
+      "onchain_raw": "249830000000000000000",
+      "onchain_amount": 249.83,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "Claude",
+      "token_address": "0xa2a83e24c6c853d9e38c74271e9ea0d261479b07",
+      "onchain_raw": "336900000000000000000",
+      "onchain_amount": 336.9,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "PIPEDOG",
+      "token_address": "0xa4dc42370e21fcf2182d24b39bebb7a5695adb07",
+      "onchain_raw": "223843000000000000000",
+      "onchain_amount": 223.843,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "OpenAI",
+      "token_address": "0xa6977034a44f40949a735844b7e008a8ead4fb07",
+      "onchain_raw": "391830000000000000000",
+      "onchain_amount": 391.83,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "unverified",
+      "protocol": "Merkl",
+      "pool": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+      "underlying_symbol": "WELL",
+      "usd_value": 1.4636287915785906
+    },
+    {
+      "kind": "money_market",
+      "protocol": "Moonwell",
+      "comptroller": "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c",
+      "market": "0xedc817a28e8b93b03976fbd4a3ddbc9f7d176c22",
+      "underlying_symbol": "USDC",
+      "assets_raw": "2110646463",
+      "onchain_amount": 2110.646463,
+      "price": 1.0,
+      "usd_value": 2110.646463
+    }
+  ]
+}

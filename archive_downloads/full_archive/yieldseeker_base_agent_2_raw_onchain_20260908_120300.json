@@ -1,0 +1,47 @@
+{
+  "onchain_total_usd": 10102.8302,
+  "onchain_unverified_usd": 0.1216,
+  "onchain_delta_pct": 2.538,
+  "details": [
+    {
+      "kind": "vault",
+      "protocol": "Euler",
+      "vault_address": "0x4c1aeda9b43efcf1da1d1755b18802aabe90f61e",
+      "underlying_symbol": "USDC",
+      "shares_raw": "7302987417",
+      "assets_raw": "7850258964",
+      "onchain_amount": 7850.258964,
+      "price": 1.000300090027008,
+      "usd_value": 7852.614748424527
+    },
+    {
+      "kind": "unverified",
+      "protocol": "Merkl",
+      "pool": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+      "underlying_symbol": "USDC",
+      "usd_value": 0.08882464739421826
+    },
+    {
+      "kind": "money_market",
+      "protocol": "Moonwell",
+      "comptroller": "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c",
+      "market": "0xedc817a28e8b93b03976fbd4a3ddbc9f7d176c22",
+      "underlying_symbol": "USDC",
+      "assets_raw": "0",
+      "onchain_amount": 0.0,
+      "price": 1.000300090027008,
+      "usd_value": 0.0
+    },
+    {
+      "kind": "vault",
+      "protocol": "Morpho",
+      "vault_address": "0x5435bc53f2c61298167cdb11cdf0db2bfa259ca0",
+      "underlying_symbol": "USDC",
+      "shares_raw": "1080609194009624525791",
+      "assets_raw": "2249540379",
+      "onchain_amount": 2249.540379,
+      "price": 1.000300090027008,
+      "usd_value": 2250.2154436330898
+    }
+  ]
+}

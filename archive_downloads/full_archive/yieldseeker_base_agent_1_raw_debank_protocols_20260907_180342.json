@@ -1,0 +1,79 @@
+[
+  {
+    "id": "base_morphoblue",
+    "chain": "base",
+    "name": "Morpho",
+    "site_url": "https://app.morpho.org",
+    "logo_url": "https://static.debank.com/image/project/logo_url/morphoblue/cfe5f811a4fb96355e0fb367b5201f87.png",
+    "has_supported_portfolio": true,
+    "tvl": 4192436086.687133,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 2015.9421762176214,
+          "debt_usd_value": 0,
+          "net_usd_value": 2015.9421762176214
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 2015.740582
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 1.000100010001,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 2015.740582
+          }
+        ],
+        "update_at": 1788804145.0,
+        "name": "Yield",
+        "detail_types": [
+          "common"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 1.000100010001,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 2015.740582
+            }
+          ],
+          "description": "Gauntlet USDC Prime"
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0xee8f4ec5672f09119b96ab6fb59c27e1b7e44b61",
+          "chain": "base",
+          "project_id": "base_morphoblue",
+          "adapter_id": "tokenized_proxy_vault_yield",
+          "controller": "0xee8f4ec5672f09119b96ab6fb59c27e1b7e44b61",
+          "index": null,
+          "time_at": 1717444929
+        }
+      }
+    ]
+  }
+]

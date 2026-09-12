@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDC Balance per Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: #94a3b8; font-size: 0.875rem; margin-bottom: 20px; }
+
+  .panel {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .filters { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .filter-group label.group-label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 8px;
+  }
+  .agent-list { display: flex; flex-direction: column; gap: 6px; }
+  .agent-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.9rem; cursor: pointer; user-select: none;
+  }
+  .agent-item input { accent-color: #38bdf8; width: 15px; height: 15px; cursor: pointer; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  .date-inputs { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .date-inputs input {
+    background: #0f172a; color: #e2e8f0;
+    border: 1px solid #334155; border-radius: 6px;
+    padding: 6px 10px; font-size: 0.85rem;
+    color-scheme: dark;
+  }
+  .btn {
+    background: #38bdf8; color: #0f172a; border: none;
+    padding: 7px 16px; border-radius: 6px;
+    font-weight: 600; font-size: 0.85rem; cursor: pointer;
+  }
+  .btn.secondary { background: #334155; color: #e2e8f0; }
+  .btn:hover { filter: brightness(1.1); }
+
+  .chart-wrap { position: relative; height: 65vh; min-height: 420px; }
+  .stats { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; }
+  .stat { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; }
+  .stat .k { font-size: 0.7rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; }
+  .stat .v { font-size: 1.1rem; font-weight: 600; }
+  .empty { color: #f59e0b; padding: 12px 0; display: none; }
+
+  .view-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+  .btn.active { background: #38bdf8; color: #0f172a; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .data-table th, .data-table td { padding: 8px 12px; text-align: right; border-bottom: 1px solid #334155; white-space: nowrap; }
+  .data-table th:first-child, .data-table td:first-child { text-align: left; }
+  .data-table thead th { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .data-table tbody tr:hover { background: #0f172a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Daily USDC Balance per Agent</h1>
+  <div class="subtitle">USDC positions aggregated (USD value) per agent &amp; timestamp</div>
+  <div class="subtitle" id="dataStatus">Loading data&hellip;</div>
+
+  <div class="panel filters">
+    <div class="filter-group">
+      <label class="group-label">Agents</label>
+      <div class="agent-list" id="agentList"></div>
+    </div>
+    <div class="filter-group">
+      <label class="group-label">Timestamp range</label>
+      <div class="date-inputs">
+        <input type="datetime-local" id="startDate">
+        <span style="color:#94a3b8">to</span>
+        <input type="datetime-local" id="endDate">
+        <button class="btn" id="applyBtn">Apply</button>
+        <button class="btn secondary" id="resetBtn">Reset</button>
+      </div>
+      <div class="empty" id="emptyMsg">No data in the selected range / agent selection.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="view-toggle">
+      <button class="btn active" id="chartViewBtn">Bar chart</button>
+      <button class="btn secondary" id="tableViewBtn">Table</button>
+    </div>
+    <div class="chart-wrap" id="chartView"><canvas id="chart"></canvas></div>
+    <div id="tableView" style="display: none; overflow-x: auto;"></div>
+    <div class="stats" id="stats"></div>
+  </div>
+</div>
+
+<script>
+// Embedded fallback snapshot — regenerate with build_usdc_balance_data.py.
+// Preferred source is usdc_balance_data.json (fetched at load time).
+const EMBEDDED_DATA = [{"agent": "Mamo Base Agent 1", "ts": "2026-09-02 23:30:59", "usd": 2093.92}, {"agent": "Mamo Base Agent 1", "ts": "2026-09-03 18:04:18", "usd": 2097.4}, {"agent": "Mamo Base Agent 1", "ts": "2026-09-04 18:02:35", "usd": 2102.28}, {"agent": "Mamo Base Agent 1", "ts": "2026-09-05 18:02:26", "usd": 2107.44}, {"agent": "Mamo Base Agent 1", "ts": "2026-09-06 18:03:48", "usd": 2110.54}, {"agent": "Mamo Base Agent 1", "ts": "2026-09-07 18:03:42", "usd": 2111.49}, {"agent": "Mamo Base Agent 1", "ts": "2026-09-08 18:04:27", "usd": 2112.45}, {"agent": "Yieldseeker Base Agent 1", "ts": "2026-09-02 23:30:59", "usd": 2015.06}, {"agent": "Yieldseeker Base Agent 1", "ts": "2026-09-03 18:04:18", "usd": 2014.65}, {"agent": "Yieldseeker Base Agent 1", "ts": "2026-09-04 18:02:35", "usd": 2014.7}, {"agent": "Yieldseeker Base Agent 1", "ts": "2026-09-05 18:02:26", "usd": 2015.12}, {"agent": "Yieldseeker Base Agent 1", "ts": "2026-09-06 18:03:48", "usd": 2015.52}, {"agent": "Yieldseeker Base Agent 1", "ts": "2026-09-07 18:03:42", "usd": 2015.94}, {"agent": "Yieldseeker Base Agent 1", "ts": "2026-09-08 18:04:27", "usd": 2016.15}, {"agent": "Yieldseeker Base Agent 2", "ts": "2026-09-02 23:30:59", "usd": 10806.65}, {"agent": "Yieldseeker Base Agent 2", "ts": "2026-09-03 18:04:18", "usd": 10803.0}, {"agent": "Yieldseeker Base Agent 2", "ts": "2026-09-04 18:02:35", "usd": 11003.86}, {"agent": "Yieldseeker Base Agent 2", "ts": "2026-09-05 18:02:26", "usd": 10094.55}, {"agent": "Yieldseeker Base Agent 2", "ts": "2026-09-06 18:03:48", "usd": 10293.67}, {"agent": "Yieldseeker Base Agent 2", "ts": "2026-09-07 18:03:42", "usd": 10293.35}, {"agent": "Yieldseeker Base Agent 2", "ts": "2026-09-08 18:04:27", "usd": 10356.69}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-08-30 18:01:55", "usd": 47278.62}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-08-31 18:02:26", "usd": 47283.09}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-09-01 18:03:49", "usd": 47288.38}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-09-02 23:30:59", "usd": 47303.87}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-09-03 18:04:18", "usd": 47313.57}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-09-04 18:02:35", "usd": 47355.06}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-09-05 18:02:26", "usd": 47335.44}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-09-06 18:03:48", "usd": 47354.82}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-09-07 18:03:42", "usd": 47342.2}, {"agent": "ZyFAI Base Agent 2", "ts": "2026-09-08 18:04:27", "usd": 47346.09}];
+
+const COLORS = ['#38bdf8', '#a78bfa', '#34d399', '#fbbf24', '#f87171', '#f472b6', '#22d3ee', '#a3e635'];
+
+let RAW_DATA = [];
+
+function init(rawData, sourceNote) {
+RAW_DATA = rawData;
+const agents = [...new Set(RAW_DATA.map(d => d.agent))].sort();
+const agentColor = {};
+agents.forEach((a, i) => agentColor[a] = COLORS[i % COLORS.length]);
+
+RAW_DATA.forEach(d => d.date = new Date(d.ts.replace(' ', 'T')));
+
+// Build agent checkboxes
+const agentListEl = document.getElementById('agentList');
+agents.forEach(a => {
+  const label = document.createElement('label');
+  label.className = 'agent-item';
+  label.innerHTML = `<input type="checkbox" value="${a}" checked>
+    <span class="swatch" style="background:${agentColor[a]}"></span> ${a}`;
+  agentListEl.appendChild(label);
+});
+agentListEl.addEventListener('change', render);
+
+// Date filter defaults to the last 15 days of data
+function toInputValue(date) {
+  const p = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}T${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
+}
+
+function defaultDateRange() {
+  const maxDate = new Date(Math.max(...RAW_DATA.map(d => d.date)));
+  const start = new Date(maxDate);
+  start.setDate(start.getDate() - 15);
+  document.getElementById('startDate').value = toInputValue(start);
+  document.getElementById('endDate').value = toInputValue(maxDate);
+}
+
+document.getElementById('applyBtn').addEventListener('click', render);
+document.getElementById('resetBtn').addEventListener('click', () => {
+  defaultDateRange();
+  document.querySelectorAll('#agentList input').forEach(cb => cb.checked = true);
+  render();
+});
+
+// Chart / table view toggle
+let currentView = 'chart';
+function setView(view) {
+  currentView = view;
+  document.getElementById('chartView').style.display = view === 'chart' ? '' : 'none';
+  document.getElementById('tableView').style.display = view === 'table' ? '' : 'none';
+  document.getElementById('chartViewBtn').className = 'btn' + (view === 'chart' ? ' active' : ' secondary');
+  document.getElementById('tableViewBtn').className = 'btn' + (view === 'table' ? ' active' : ' secondary');
+  render(); // Chart.js must be re-created once the canvas is visible again
+}
+document.getElementById('chartViewBtn').addEventListener('click', () => setView('chart'));
+document.getElementById('tableViewBtn').addEventListener('click', () => setView('table'));
+
+let chart = null;
+
+function renderTable(filtered, selected) {
+  const el = document.getElementById('tableView');
+  const dates = [...new Set(filtered.map(d => d.ts.slice(0, 10)))].sort();
+  const cols = agents.filter(a => selected.has(a));
+  if (!dates.length || !cols.length) { el.innerHTML = ''; return; }
+  const lookup = {};
+  filtered.forEach(d => { lookup[d.agent + '|' + d.ts.slice(0, 10)] = d.usd; });
+  const fmt = v => '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let html = '<table class="data-table"><thead><tr><th>Date</th>';
+  cols.forEach(a => { html += `<th><span class="swatch" style="background:${agentColor[a]}"></span> ${a}</th>`; });
+  html += '</tr></thead><tbody>';
+  dates.forEach(day => {
+    html += `<tr><td>${day}</td>`;
+    cols.forEach(a => {
+      const v = lookup[a + '|' + day];
+      html += `<td>${v === undefined ? '&mdash;' : fmt(v)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function render() {
+  const selected = new Set([...document.querySelectorAll('#agentList input:checked')].map(cb => cb.value));
+  const startVal = document.getElementById('startDate').value;
+  const endVal = document.getElementById('endDate').value;
+  const start = startVal ? new Date(startVal) : null;
+  const end = endVal ? new Date(endVal) : null;
+
+  const filtered = RAW_DATA.filter(d => selected.has(d.agent)
+    && (!start || d.date >= start) && (!end || d.date <= end));
+  document.getElementById('emptyMsg').style.display = filtered.length ? 'none' : 'block';
+
+  const datasets = agents.filter(a => selected.has(a)).map(a => {
+    const pts = filtered.filter(d => d.agent === a)
+      .sort((x, y) => x.date - y.date)
+      .map(d => ({ x: d.date, y: d.usd }));
+    return {
+      label: a,
+      data: pts,
+      borderColor: agentColor[a],
+      backgroundColor: agentColor[a] + 'cc',
+      borderWidth: 1,
+      borderRadius: 3,
+      barThickness: 10
+    };
+  });
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('chart'), {
+    type: 'bar',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#e2e8f0', usePointStyle: true, pointStyle: 'circle', padding: 16 } },
+        tooltip: {
+          backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1,
+          callbacks: {
+            title: items => items.length ? new Date(items[0].parsed.x).toLocaleString() : '',
+            label: item => ` ${item.dataset.label}: $${item.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { minute: 'HH:mm', hour: 'MMM d HH:mm', day: 'MMM d' } },
+          ticks: { color: '#94a3b8', maxRotation: 45, autoSkip: true, maxTicksLimit: 12 },
+          grid: { color: 'rgba(148,163,184,0.1)' },
+          title: { display: true, text: 'Timestamp', color: '#94a3b8' }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#94a3b8', callback: v => '$' + v.toLocaleString() },
+          grid: { color: 'rgba(148,163,184,0.1)' },
+          title: { display: true, text: 'USDC Balance (USD)', color: '#94a3b8' }
+        }
+      }
+    }
+  });
+
+  // Stats
+  const statsEl = document.getElementById('stats');
+  statsEl.innerHTML = '';
+  datasets.forEach(ds => {
+    if (!ds.data.length) return;
+    const vals = ds.data.map(p => p.y);
+    const first = vals[0], last = vals[vals.length - 1];
+    const delta = last - first;
+    const div = document.createElement('div');
+    div.className = 'stat';
+    div.innerHTML = `<div class="k" style="color:${ds.borderColor}">${ds.label}</div>
+      <div class="v">$${last.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+      <div style="font-size:0.75rem;color:${delta >= 0 ? '#34d399' : '#f87171'}">
+        ${delta >= 0 ? '+' : ''}$${delta.toLocaleString(undefined, { minimumFractionDigits: 2 })} over period</div>`;
+    statsEl.appendChild(div);
+  });
+
+  renderTable(filtered, selected);
+}
+
+defaultDateRange();
+render();
+
+const statusEl = document.getElementById('dataStatus');
+statusEl.textContent = `Source: ${sourceNote} — ${RAW_DATA.length} records`;
+}
+
+// Try the JSON file first; fall back to the embedded snapshot when the page
+// is opened via file:// (browsers block fetch of local files).
+fetch('usdc_balance_data.json')
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(data => init(data, 'usdc_balance_data.json'))
+  .catch(err => {
+    document.getElementById('dataStatus').textContent =
+      'Could not load usdc_balance_data.json (' + err.message + ') — showing embedded snapshot. ' +
+      'For the live JSON source, serve the folder: python -m http.server 8000';
+    init(EMBEDDED_DATA, 'embedded snapshot');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+[
+  {
+    "id": "base_merkl",
+    "chain": "base",
+    "name": "Merkl",
+    "site_url": "https://app.merkl.xyz",
+    "logo_url": "https://static.debank.com/image/project/logo_url/base_merkl/d7c85c3f12969282a4db46cd5891b3fd.png",
+    "has_supported_portfolio": true,
+    "tvl": 1617103.4910292989,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 0.5918825647694308,
+          "debt_usd_value": 0,
+          "net_usd_value": 0.5918825647694308
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 0.591705,
+          "0x1c08c7df416062b472f553dcc1ed3045489520c5": 27021.777506071157
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 1.000300090027008,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 0.591705
+          },
+          {
+            "id": "0x1c08c7df416062b472f553dcc1ed3045489520c5",
+            "chain": "base",
+            "name": "Reward ZFI",
+            "symbol": "rZFI",
+            "display_symbol": null,
+            "optimized_symbol": "rZFI",
+            "decimals": 18,
+            "logo_url": "https://static.debank.com/image/base_token/logo_url/0x1c08c7df416062b472f553dcc1ed3045489520c5/45824c723a651067271ec2802799963b.png",
+            "protocol_id": "base_zyfai",
+            "price": 0,
+            "is_verified": true,
+            "is_core": false,
+            "is_wallet": false,
+            "time_at": 1753203917.0,
+            "amount": 27021.777506071157
+          }
+        ],
+        "update_at": 1788383975.0,
+        "name": "Rewards",
+        "detail_types": [
+          "common"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 1.000300090027008,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 0.591705
+            },
+            {
+              "id": "0x1c08c7df416062b472f553dcc1ed3045489520c5",
+              "chain": "base",
+              "name": "Reward ZFI",
+              "symbol": "rZFI",
+              "display_symbol": null,
+              "optimized_symbol": "rZFI",
+              "decimals": 18,
+              "logo_url": "https://static.debank.com/image/base_token/logo_url/0x1c08c7df416062b472f553dcc1ed3045489520c5/45824c723a651067271ec2802799963b.png",
+              "protocol_id": "base_zyfai",
+              "price": 0,
+              "is_verified": true,
+              "is_core": false,
+              "is_wallet": false,
+              "time_at": 1753203917.0,
+              "amount": 27021.777506071157
+            }
+          ]
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+          "chain": "base",
+          "project_id": "base_merkl",
+          "adapter_id": "merkl_reward",
+          "controller": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+          "index": null,
+          "time_at": 1691171679
+        }
+      }
+    ]
+  },
+  {
+    "id": "base_morphoblue",
+    "chain": "base",
+    "name": "Morpho",
+    "site_url": "https://app.morpho.org",
+    "logo_url": "https://static.debank.com/image/project/logo_url/morphoblue/cfe5f811a4fb96355e0fb367b5201f87.png",
+    "has_supported_portfolio": true,
+    "tvl": 4071480502.889512,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 47326.44376512954,
+          "debt_usd_value": 0,
+          "net_usd_value": 47326.44376512954
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 47312.245832
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 1.000300090027008,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 47312.245832
+          }
+        ],
+        "update_at": 1788383976.0,
+        "name": "Yield",
+        "detail_types": [
+          "common"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 1.000300090027008,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 47312.245832
+            }
+          ],
+          "description": "Clearstar High Yield USDC"
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c",
+          "chain": "base",
+          "project_id": "base_morphoblue",
+          "adapter_id": "redeemable_tokenized_vault_yield",
+          "controller": "0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c",
+          "index": null,
+          "time_at": 1769074507
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,25 @@
+[
+  {
+    "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "chain": "base",
+    "name": "USD Coin",
+    "symbol": "USDC",
+    "display_symbol": null,
+    "optimized_symbol": "USDC",
+    "decimals": 6,
+    "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+    "protocol_id": "",
+    "price": 0.9999000099990001,
+    "price_24h_change": -0.0003999600039995518,
+    "is_verified": true,
+    "is_core": true,
+    "is_wallet": true,
+    "is_suspicious": false,
+    "time_at": 1692383789.0,
+    "total_supply": 4192233518.056436,
+    "credit_score": 12144482.87450971,
+    "amount": 1e-06,
+    "raw_amount": 1,
+    "raw_amount_hex_str": "0x1"
+  }
+]

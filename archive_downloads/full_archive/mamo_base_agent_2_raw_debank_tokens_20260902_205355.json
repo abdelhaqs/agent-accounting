@@ -1,0 +1,25 @@
+[
+  {
+    "id": "0xa88594d404727625a9437c3f886c7643872296ae",
+    "chain": "base",
+    "name": "WELL",
+    "symbol": "WELL",
+    "display_symbol": null,
+    "optimized_symbol": "WELL",
+    "decimals": 18,
+    "logo_url": "https://static.debank.com/image/mobm_token/logo_url/0x511ab53f793683763e5a8829738301368a2411e3/b82e97dd371cfdacb522ffebd7840729.png",
+    "protocol_id": "",
+    "price": 0.0023696624894969467,
+    "price_24h_change": 0.026432285701845335,
+    "is_verified": true,
+    "is_core": true,
+    "is_wallet": true,
+    "is_suspicious": false,
+    "time_at": 1704752551.0,
+    "total_supply": 4528402329.949275,
+    "credit_score": 309011.2018284267,
+    "amount": 1387.0010484878253,
+    "raw_amount": 1387001048487825290683,
+    "raw_amount_hex_str": "0x4b308198f4032cb5bb"
+  }
+]

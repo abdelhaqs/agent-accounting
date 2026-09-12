@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "wallet": "0x40813df8a23534783e99031fe4f57a65aceeb414",
+    "agent_name": "Yieldseeker Base Agent 1",
+    "chain": "base",
+    "position_type": "Morpho: Yield #e44b61",
+    "token_id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "token_name": "USD Coin",
+    "token_symbol": "USDC",
+    "token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "chain_id": "base",
+    "decimals": 6,
+    "balance_raw": null,
+    "balance_float": 2015.149456,
+    "price": 0.9997000899730081,
+    "usd_value": 2014.5450924722584,
+    "is_receipt_token": true,
+    "updated_at": "2026-09-05T00:03:29.483273+00:00",
+    "provider": "debank"
+  }
+]

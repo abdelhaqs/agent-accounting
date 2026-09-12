@@ -1,0 +1,157 @@
+[
+  {
+    "agent": "Mamo Base Agent 1",
+    "ts": "2026-09-02 23:30:59",
+    "usd": 2093.92
+  },
+  {
+    "agent": "Mamo Base Agent 1",
+    "ts": "2026-09-03 18:04:18",
+    "usd": 2097.4
+  },
+  {
+    "agent": "Mamo Base Agent 1",
+    "ts": "2026-09-04 18:02:35",
+    "usd": 2102.28
+  },
+  {
+    "agent": "Mamo Base Agent 1",
+    "ts": "2026-09-05 18:02:26",
+    "usd": 2107.44
+  },
+  {
+    "agent": "Mamo Base Agent 1",
+    "ts": "2026-09-06 18:03:48",
+    "usd": 2110.54
+  },
+  {
+    "agent": "Mamo Base Agent 1",
+    "ts": "2026-09-07 18:03:42",
+    "usd": 2111.49
+  },
+  {
+    "agent": "Mamo Base Agent 1",
+    "ts": "2026-09-08 18:04:27",
+    "usd": 2112.45
+  },
+  {
+    "agent": "Yieldseeker Base Agent 1",
+    "ts": "2026-09-02 23:30:59",
+    "usd": 2015.06
+  },
+  {
+    "agent": "Yieldseeker Base Agent 1",
+    "ts": "2026-09-03 18:04:18",
+    "usd": 2014.65
+  },
+  {
+    "agent": "Yieldseeker Base Agent 1",
+    "ts": "2026-09-04 18:02:35",
+    "usd": 2014.7
+  },
+  {
+    "agent": "Yieldseeker Base Agent 1",
+    "ts": "2026-09-05 18:02:26",
+    "usd": 2015.12
+  },
+  {
+    "agent": "Yieldseeker Base Agent 1",
+    "ts": "2026-09-06 18:03:48",
+    "usd": 2015.52
+  },
+  {
+    "agent": "Yieldseeker Base Agent 1",
+    "ts": "2026-09-07 18:03:42",
+    "usd": 2015.94
+  },
+  {
+    "agent": "Yieldseeker Base Agent 1",
+    "ts": "2026-09-08 18:04:27",
+    "usd": 2016.15
+  },
+  {
+    "agent": "Yieldseeker Base Agent 2",
+    "ts": "2026-09-02 23:30:59",
+    "usd": 10806.65
+  },
+  {
+    "agent": "Yieldseeker Base Agent 2",
+    "ts": "2026-09-03 18:04:18",
+    "usd": 10803.0
+  },
+  {
+    "agent": "Yieldseeker Base Agent 2",
+    "ts": "2026-09-04 18:02:35",
+    "usd": 11003.86
+  },
+  {
+    "agent": "Yieldseeker Base Agent 2",
+    "ts": "2026-09-05 18:02:26",
+    "usd": 10094.55
+  },
+  {
+    "agent": "Yieldseeker Base Agent 2",
+    "ts": "2026-09-06 18:03:48",
+    "usd": 10293.67
+  },
+  {
+    "agent": "Yieldseeker Base Agent 2",
+    "ts": "2026-09-07 18:03:42",
+    "usd": 10293.35
+  },
+  {
+    "agent": "Yieldseeker Base Agent 2",
+    "ts": "2026-09-08 18:04:27",
+    "usd": 10356.69
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-08-30 18:01:55",
+    "usd": 47278.62
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-08-31 18:02:26",
+    "usd": 47283.09
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-09-01 18:03:49",
+    "usd": 47288.38
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-09-02 23:30:59",
+    "usd": 47303.87
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-09-03 18:04:18",
+    "usd": 47313.57
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-09-04 18:02:35",
+    "usd": 47355.06
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-09-05 18:02:26",
+    "usd": 47335.44
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-09-06 18:03:48",
+    "usd": 47354.82
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-09-07 18:03:42",
+    "usd": 47342.2
+  },
+  {
+    "agent": "ZyFAI Base Agent 2",
+    "ts": "2026-09-08 18:04:27",
+    "usd": 47346.09
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "onchain_total_usd": 2015.6336,
+  "onchain_unverified_usd": 0.0,
+  "onchain_delta_pct": -0.001,
+  "details": [
+    {
+      "kind": "vault",
+      "protocol": "Spark",
+      "vault_address": "0x3128a0f7f0ea68e7b7c9b00afa7e41045828e858",
+      "underlying_symbol": "USDC",
+      "shares_raw": "1817966265000000000000",
+      "assets_raw": "2015633588",
+      "onchain_amount": 2015.633588,
+      "price": 1.0,
+      "usd_value": 2015.633588
+    }
+  ]
+}

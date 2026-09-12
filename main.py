@@ -525,6 +525,174 @@ def reconcile_balances(
     return record
 
 
+def verify_onchain(
+    wallet: str,
+    agent_name: str | None,
+    computed_usd: float,
+    balances: list[dict[str, Any]],
+    rpc: "UniblockRpcClient",
+    uniblock: "UniblockClient | None",
+    debank_raw: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Verify stored balances against raw on-chain state via JSON-RPC (Base).
+
+    Two layers:
+    - wallet tokens: eth_call balanceOf for each stored wallet-row token
+      (plus eth_getBalance for native ETH rows)
+    - vault positions: for every ERC-4626 vault discovered in the DeBank
+      protocol list, balanceOf (shares) + convertToAssets -> underlying amount
+
+    Returns onchain_total_usd, onchain_delta_pct vs the stored computed total,
+    and a per-item breakdown (archived as raw_onchain_<timestamp>.json).
+    """
+    details: list[dict[str, Any]] = []
+    total = 0.0
+
+    # --- Layer 1: wallet token balances ---
+    wallet_rows = [
+        b for b in balances
+        if not b.get("is_receipt_token") and (b.get("chain") or "").lower() == "base"
+    ]
+    wallet_rows.sort(key=lambda b: b.get("usd_value") or 0, reverse=True)
+    for row in wallet_rows[:20]:  # cap calls; dust beyond this is immaterial
+        addr = row.get("token_address")
+        decimals = row.get("decimals")
+        price = row.get("price")
+        symbol = row.get("token_symbol") or row.get("token_name") or "?"
+        try:
+            if addr and addr.startswith("0x"):
+                raw = rpc.get_erc20_balance(addr, wallet)
+            elif (symbol or "").upper() == "ETH":
+                raw = rpc.get_eth_balance(wallet)
+                decimals = decimals if decimals is not None else 18
+            else:
+                continue
+        except Exception as exc:
+            logger.warning("On-chain check: balanceOf failed for %s (%s): %s", symbol, addr, exc)
+            continue
+        amount = raw / 10**decimals if decimals else None
+        usd = amount * price if amount is not None and price else None
+        if usd:
+            total += usd
+        details.append({
+            "kind": "wallet_token", "symbol": symbol, "token_address": addr,
+            "onchain_raw": str(raw), "onchain_amount": amount,
+            "price": price, "usd_value": usd,
+        })
+
+    # --- Layer 2: ERC-4626 vault positions (Morpho etc.) ---
+    protocols: list[dict[str, Any]] = []
+    if debank_raw is not None:
+        protocols = debank_raw.get("protocols") or []
+    elif uniblock is not None:
+        try:
+            protocols = uniblock.get_complex_protocol_list(wallet, chain_ids="base")
+        except Exception as exc:
+            logger.warning("On-chain check: vault discovery failed for %s: %s", wallet, exc)
+
+    seen_vaults: set[str] = set()
+    unverified_usd = 0.0
+    for p in protocols:
+        pname = p.get("name") or p.get("id") or "protocol"
+        for item in p.get("portfolio_item_list", []):
+            pool_id = (item.get("pool") or {}).get("id") or ""
+            if not pool_id.startswith("0x") or pool_id.lower() in seen_vaults:
+                continue
+            detail = item.get("detail") or {}
+            supply = detail.get("supply_token_list") or []
+            if not supply:
+                continue
+            seen_vaults.add(pool_id.lower())
+            underlying = supply[0]
+            decimals = underlying.get("decimals")
+            price = underlying.get("price")
+            symbol = underlying.get("symbol") or underlying.get("optimized_symbol") or "?"
+            # USD value of anything attached to this position that we cannot
+            # verify on-chain (reward tokens, or the whole position if both
+            # verification strategies fail).
+            reward_usd = sum(
+                (t.get("amount") or 0) * (t.get("price") or 0)
+                for t in detail.get("reward_token_list") or []
+            )
+            item_usd = sum(
+                (t.get("amount") or 0) * (t.get("price") or 0)
+                for t in supply
+            ) + reward_usd
+
+            # Strategy 1: ERC-4626 vault (Morpho etc.)
+            try:
+                shares, assets = rpc.get_vault_assets(pool_id, wallet)
+                amount = assets / 10**decimals if decimals else None
+                usd = amount * price if amount is not None and price else None
+                if usd:
+                    total += usd
+                unverified_usd += reward_usd
+                details.append({
+                    "kind": "vault", "protocol": pname, "vault_address": pool_id,
+                    "underlying_symbol": symbol, "shares_raw": str(shares),
+                    "assets_raw": str(assets), "onchain_amount": amount,
+                    "price": price, "usd_value": usd,
+                })
+                continue
+            except Exception:
+                pass
+
+            # Strategy 2: Compound-fork money market (Moonwell etc.) — the
+            # DeBank pool id is the comptroller; resolve the mToken market
+            # whose underlying matches, then balanceOfUnderlying(wallet).
+            try:
+                token_addr = underlying.get("id") or ""
+                market = (
+                    rpc.find_market_for_underlying(pool_id, token_addr)
+                    if token_addr.startswith("0x") else None
+                )
+                if market is None:
+                    raise ValueError(f"no market for underlying {token_addr[:10]}")
+                assets = rpc.get_balance_of_underlying(market, wallet)
+                amount = assets / 10**decimals if decimals else None
+                usd = amount * price if amount is not None and price else None
+                if usd:
+                    total += usd
+                unverified_usd += reward_usd
+                details.append({
+                    "kind": "money_market", "protocol": pname,
+                    "comptroller": pool_id, "market": market,
+                    "underlying_symbol": symbol, "assets_raw": str(assets),
+                    "onchain_amount": amount, "price": price, "usd_value": usd,
+                })
+                continue
+            except Exception as exc:
+                logger.info(
+                    "On-chain check: %s pool %s not verifiable on-chain (%s)",
+                    pname, pool_id[:10], exc,
+                )
+
+            # Fallback: position type we cannot verify — keep it out of the
+            # delta so it never false-flags, but record it explicitly.
+            unverified_usd += item_usd
+            details.append({
+                "kind": "unverified", "protocol": pname, "pool": pool_id,
+                "underlying_symbol": symbol, "usd_value": item_usd,
+            })
+
+    covered = total + unverified_usd
+    if abs(covered) < 1e-9:
+        delta_pct = 0.0 if abs(computed_usd) < 1e-9 else 100.0
+    else:
+        delta_pct = round((computed_usd - covered) / covered * 100, 3)
+
+    logger.info(
+        "On-chain check %s: stored=$%.2f | on-chain=$%.2f + unverified=$%.2f (delta %s%%, %d items)",
+        agent_name, computed_usd, total, unverified_usd, f"{delta_pct:+.3f}", len(details),
+    )
+    return {
+        "onchain_total_usd": round(total, 4),
+        "onchain_unverified_usd": round(unverified_usd, 4),
+        "onchain_delta_pct": delta_pct,
+        "details": details,
+    }
+
+
 def export_json(
     storage: Storage, wallet: str, run_dir: Path, run_timestamp: str
 ) -> tuple[int, int]:
@@ -607,9 +775,17 @@ def write_run_log(
         for r in reconciliation:
             same = f"${r['same_provider_total_usd']:,.2f}" if r["same_provider_total_usd"] is not None else "n/a"
             cross = f"${r['cross_provider_total_usd']:,.2f}" if r["cross_provider_total_usd"] is not None else "n/a"
+            if r.get("onchain_total_usd") is not None:
+                unver = r.get("onchain_unverified_usd") or 0
+                onchain = f"${r['onchain_total_usd']:,.2f}"
+                if unver:
+                    onchain += f" (+${unver:,.2f} unverified)"
+                onchain += f" ({r['onchain_delta_pct']:+.3f}%)"
+            else:
+                onchain = "n/a"
             lines.append(
                 f"  {r['agent_name']} [{r['provider']}]: stored=${r['computed_usd']:,.2f} "
-                f"| same-provider={same} | cross-provider={cross} -> {r['status']}"
+                f"| same-provider={same} | cross-provider={cross} | on-chain={onchain} -> {r['status']}"
             )
         lines.append("")
 
@@ -710,6 +886,11 @@ def main():
         help="Disable the Uniblock/DeBank fallback for Zerion-unsupported wallets",
     )
     parser.add_argument(
+        "--skip-rpc",
+        action="store_true",
+        help="Disable the on-chain (JSON-RPC) balance verification layer",
+    )
+    parser.add_argument(
         "--no-export",
         action="store_true",
         help="Skip exporting JSON/raw files (only update SQLite)",
@@ -766,9 +947,17 @@ def main():
         uniblock_client = UniblockClient(uniblock_key, rate_limit_delay=args.rate_limit_delay)
         logger.info("Uniblock/DeBank fallback enabled for Zerion-unsupported wallets")
 
+    rpc_client = None
+    if uniblock_key and not args.skip_rpc:
+        from rpc_client import UniblockRpcClient
+
+        rpc_client = UniblockRpcClient(uniblock_key)
+        logger.info("On-chain (JSON-RPC) balance verification enabled")
+
     failed_agents: list[str] = []
     run_entries: list[dict[str, Any]] = []
     reconciliation_records: list[dict[str, Any]] = []
+    onchain_results: dict[str, dict[str, Any]] = {}  # wallet -> verify_onchain result
     staged: list[tuple[Path, Path]] = []  # (run_dir, archive_agent_dir)
 
     for agent in agents:
@@ -837,21 +1026,54 @@ def main():
                 except Exception as exc:
                     logger.error("BigQuery load failed for %s: %s", wallet, exc, exc_info=True)
 
+            rec: dict[str, Any] | None = None
             try:
-                reconciliation_records.append(
-                    reconcile_balances(
-                        wallet,
-                        agent_name,
-                        provider,
-                        storage,
-                        client,
-                        uniblock_client,
-                        chain_ids,
-                        run_timestamp,
-                    )
+                rec = reconcile_balances(
+                    wallet,
+                    agent_name,
+                    provider,
+                    storage,
+                    client,
+                    uniblock_client,
+                    chain_ids,
+                    run_timestamp,
                 )
+                reconciliation_records.append(rec)
             except Exception as exc:
                 logger.error("Reconciliation failed for %s: %s", wallet, exc, exc_info=True)
+
+            if rpc_client is not None and rec is not None:
+                try:
+                    onchain = verify_onchain(
+                        wallet,
+                        agent_name,
+                        rec["computed_usd"],
+                        storage.get_balances(wallet_lower),
+                        rpc_client,
+                        uniblock_client,
+                        debank_raw,
+                    )
+                    rec["onchain_total_usd"] = onchain["onchain_total_usd"]
+                    rec["onchain_unverified_usd"] = onchain["onchain_unverified_usd"]
+                    rec["onchain_delta_pct"] = onchain["onchain_delta_pct"]
+                    onchain_results[wallet_lower] = onchain
+                    # On-chain ground truth participates in the verdict.
+                    d = onchain["onchain_delta_pct"]
+                    covered = onchain["onchain_total_usd"] + onchain["onchain_unverified_usd"]
+                    if (
+                        d is not None
+                        and abs(d) > RECONCILE_TOLERANCE_PCT
+                        and abs(rec["computed_usd"] - covered)
+                        > RECONCILE_TOLERANCE_USD
+                        and rec["status"] == "OK"
+                    ):
+                        rec["status"] = "MISMATCH"
+                        logger.warning(
+                            "Reconcile %s: on-chain delta %+.3f%% escalates status to MISMATCH",
+                            agent_name, d,
+                        )
+                except Exception as exc:
+                    logger.error("On-chain verification failed for %s: %s", wallet, exc, exc_info=True)
 
             if not args.no_export:
                 agent_dir = output_dir / _safe_name(agent_name or wallet_lower)
@@ -866,6 +1088,11 @@ def main():
                         (run_dir / f"raw_debank_{name}_{run_timestamp}.json").write_text(
                             json.dumps(payload, indent=2), encoding="utf-8"
                         )
+                if wallet_lower in onchain_results:
+                    run_dir.mkdir(parents=True, exist_ok=True)
+                    (run_dir / f"raw_onchain_{run_timestamp}.json").write_text(
+                        json.dumps(onchain_results[wallet_lower], indent=2), encoding="utf-8"
+                    )
                 prefix = _safe_name(agent_name or wallet_lower)
                 staged.append((run_dir, prefix))
                 run_entries.append(

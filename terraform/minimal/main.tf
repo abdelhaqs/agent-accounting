@@ -262,6 +262,9 @@ resource "google_bigquery_table" "balance_reconciliation" {
     { name = "cross_provider_total_usd", type = "FLOAT", mode = "NULLABLE" },
     { name = "same_provider_delta_pct", type = "FLOAT", mode = "NULLABLE" },
     { name = "cross_provider_delta_pct", type = "FLOAT", mode = "NULLABLE" },
+    { name = "onchain_total_usd", type = "FLOAT", mode = "NULLABLE" },
+    { name = "onchain_unverified_usd", type = "FLOAT", mode = "NULLABLE" },
+    { name = "onchain_delta_pct", type = "FLOAT", mode = "NULLABLE" },
     { name = "status", type = "STRING", mode = "NULLABLE" },
     { name = "loaded_at", type = "TIMESTAMP", mode = "NULLABLE" }
   ])

@@ -1,0 +1,52 @@
+{
+  "onchain_total_usd": 4.7015,
+  "onchain_unverified_usd": 0.0,
+  "onchain_delta_pct": 13.931,
+  "details": [
+    {
+      "kind": "wallet_token",
+      "symbol": "ETH",
+      "token_address": null,
+      "onchain_raw": "1869274078730967",
+      "onchain_amount": 0.001869274078730967,
+      "price": 2402.04,
+      "usd_value": 4.490071108074932
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "MORPHO",
+      "token_address": "0x40bd670a58238e6e230c430bbb5ce6ec0d40df48",
+      "onchain_raw": "0",
+      "onchain_amount": 0.0,
+      "price": 2.5163290632,
+      "usd_value": 0.0
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "EXTRA",
+      "token_address": "0x2dad3a13ef0c6366220f989157009e501e7938f8",
+      "onchain_raw": "48641977863124175225",
+      "onchain_amount": 48.641977863124175,
+      "price": 0.0043469322000000005,
+      "usd_value": 0.2114433798449017
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "$JOJO",
+      "token_address": "0xca56dad006ffc4be556eca50ecbda0d2f79d777f",
+      "onchain_raw": "1000000000000000000",
+      "onchain_amount": 1.0,
+      "price": 0.0,
+      "usd_value": null
+    },
+    {
+      "kind": "wallet_token",
+      "symbol": "USOWTR",
+      "token_address": "0xcfe8c30ea69250fd4aeeb8a12822586b3fa4e489",
+      "onchain_raw": "25000000000000000000",
+      "onchain_amount": 25.0,
+      "price": 0.0,
+      "usd_value": null
+    }
+  ]
+}

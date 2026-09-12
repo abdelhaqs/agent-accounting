@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "wallet": "0x40813df8a23534783e99031fe4f57a65aceeb414",
+    "agent_name": "Yieldseeker Base Agent 1",
+    "chain": "base",
+    "position_type": "Spark: Yield #28e858",
+    "token_id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "token_name": "USD Coin",
+    "token_symbol": "USDC",
+    "token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "chain_id": "base",
+    "decimals": 6,
+    "balance_raw": null,
+    "balance_float": 2015.359317,
+    "price": 0.9998000399920016,
+    "usd_value": 2014.956325734853,
+    "is_receipt_token": true,
+    "updated_at": "2026-09-06T00:02:32.974155+00:00",
+    "provider": "debank"
+  }
+]

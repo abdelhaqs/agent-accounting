@@ -1,0 +1,18 @@
+{
+  "onchain_total_usd": 2016.0,
+  "onchain_unverified_usd": 0.0,
+  "onchain_delta_pct": -0.001,
+  "details": [
+    {
+      "kind": "vault",
+      "protocol": "Morpho",
+      "vault_address": "0xee8f4ec5672f09119b96ab6fb59c27e1b7e44b61",
+      "underlying_symbol": "USDC",
+      "shares_raw": "1815354851283853511116",
+      "assets_raw": "2015798364",
+      "onchain_amount": 2015.798364,
+      "price": 1.000100010001,
+      "usd_value": 2015.9999639963994
+    }
+  ]
+}

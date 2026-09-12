@@ -1,0 +1,42 @@
+[
+  {
+    "id": 12,
+    "wallet": "0x53d78cc346e05f153401ac4c0c7626062e0b9a40",
+    "agent_name": "Mamo Base Agent 2",
+    "chain": "base",
+    "position_type": "wallet",
+    "token_id": "0xa88594d404727625a9437c3f886c7643872296ae",
+    "token_name": "WELL",
+    "token_symbol": "WELL",
+    "token_address": "0xa88594d404727625a9437c3f886c7643872296ae",
+    "chain_id": "base",
+    "decimals": 18,
+    "balance_raw": "1387001048487825290683",
+    "balance_float": 1387.0010484878253,
+    "price": 0.0023696624894969467,
+    "usd_value": 3.2867243574945353,
+    "is_receipt_token": false,
+    "updated_at": "2026-09-02T20:54:40.243351+00:00",
+    "provider": "debank"
+  },
+  {
+    "id": 13,
+    "wallet": "0x53d78cc346e05f153401ac4c0c7626062e0b9a40",
+    "agent_name": "Mamo Base Agent 2",
+    "chain": "base",
+    "position_type": "Merkl: Rewards",
+    "token_id": "0xa88594d404727625a9437c3f886c7643872296ae",
+    "token_name": "WELL",
+    "token_symbol": "WELL",
+    "token_address": "0xa88594d404727625a9437c3f886c7643872296ae",
+    "chain_id": "base",
+    "decimals": 18,
+    "balance_raw": null,
+    "balance_float": 12.06662562869112,
+    "price": 0.0023696624894969467,
+    "usd_value": 0.02859383012711186,
+    "is_receipt_token": true,
+    "updated_at": "2026-09-02T20:54:40.243369+00:00",
+    "provider": "debank"
+  }
+]

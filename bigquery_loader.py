@@ -67,6 +67,9 @@ RECONCILIATION_SCHEMA = [
     bigquery.SchemaField("cross_provider_total_usd", "FLOAT"),
     bigquery.SchemaField("same_provider_delta_pct", "FLOAT"),
     bigquery.SchemaField("cross_provider_delta_pct", "FLOAT"),
+    bigquery.SchemaField("onchain_total_usd", "FLOAT"),
+    bigquery.SchemaField("onchain_unverified_usd", "FLOAT"),
+    bigquery.SchemaField("onchain_delta_pct", "FLOAT"),
     bigquery.SchemaField("status", "STRING"),
     bigquery.SchemaField("loaded_at", "TIMESTAMP"),
 ]
