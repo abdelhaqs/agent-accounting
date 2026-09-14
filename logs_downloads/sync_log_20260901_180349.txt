@@ -1,0 +1,17 @@
+Zerion sync run: 20260901_180349
+
+Agent: ZyFAI Base Agent 2 (0xBf96c935F7cB35b86Efaa0693D81d875f4B4e7eb)
+  Transfers exported: 172
+  Balances exported: 7
+  Raw transaction pages: 2
+  Raw position pages: 1
+  Files archived: zyfai_base_agent_2_balances_20260901_180349.json, zyfai_base_agent_2_raw_positions_20260901_180349.json, zyfai_base_agent_2_raw_transactions_20260901_180349.json, zyfai_base_agent_2_transfers_20260901_180349.json
+
+Agent: Surfliquid Base Agent 1 (0x0373beEef981B60dD35D05db9D32DDc100474a11)
+  Transfers exported: 18
+  Balances exported: 5
+  Raw transaction pages: 2
+  Raw position pages: 1
+  Files archived: surfliquid_base_agent_1_balances_20260901_180349.json, surfliquid_base_agent_1_raw_positions_20260901_180349.json, surfliquid_base_agent_1_raw_transactions_20260901_180349.json, surfliquid_base_agent_1_transfers_20260901_180349.json
+
+Failed agents: 0xe51b7dba38e732a19838c3f23816df7092441597, 0x53d78cc346e05f153401ac4c0c7626062e0b9a40

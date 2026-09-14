@@ -1,0 +1,45 @@
+Zerion sync run: 20260913_000227
+
+Agent: Yieldseeker Base Agent 1 (0x40813DF8a23534783E99031fe4F57A65ACEeb414)
+  Transfers exported: 24
+  Balances exported: 1
+  Raw transaction pages: 0
+  Raw position pages: 0
+  Files archived: yieldseeker_base_agent_1_balances_20260913_000227.json, yieldseeker_base_agent_1_raw_debank_history_20260913_000227.json, yieldseeker_base_agent_1_raw_debank_protocols_20260913_000227.json, yieldseeker_base_agent_1_raw_debank_tokens_20260913_000227.json, yieldseeker_base_agent_1_raw_onchain_20260913_000227.json, yieldseeker_base_agent_1_raw_positions_20260913_000227.json, yieldseeker_base_agent_1_raw_transactions_20260913_000227.json, yieldseeker_base_agent_1_transfers_20260913_000227.json
+
+Agent: Yieldseeker Base Agent 2 (0xe51b7dba38e732a19838c3f23816df7092441597)
+  Transfers exported: 40
+  Balances exported: 5
+  Raw transaction pages: 0
+  Raw position pages: 0
+  Files archived: yieldseeker_base_agent_2_balances_20260913_000227.json, yieldseeker_base_agent_2_raw_debank_history_20260913_000227.json, yieldseeker_base_agent_2_raw_debank_protocols_20260913_000227.json, yieldseeker_base_agent_2_raw_debank_tokens_20260913_000227.json, yieldseeker_base_agent_2_raw_onchain_20260913_000227.json, yieldseeker_base_agent_2_raw_positions_20260913_000227.json, yieldseeker_base_agent_2_raw_transactions_20260913_000227.json, yieldseeker_base_agent_2_transfers_20260913_000227.json
+
+Agent: ZyFAI Base Agent 2 (0xBf96c935F7cB35b86Efaa0693D81d875f4B4e7eb)
+  Transfers exported: 204
+  Balances exported: 5
+  Raw transaction pages: 3
+  Raw position pages: 1
+  Files archived: zyfai_base_agent_2_balances_20260913_000227.json, zyfai_base_agent_2_raw_onchain_20260913_000227.json, zyfai_base_agent_2_raw_positions_20260913_000227.json, zyfai_base_agent_2_raw_transactions_20260913_000227.json, zyfai_base_agent_2_transfers_20260913_000227.json
+
+Agent: Mamo Base Agent 1 (0x7c4f5EfCE7ebD0E99D9d38CAd4573140087162dd)
+  Transfers exported: 26
+  Balances exported: 37
+  Raw transaction pages: 0
+  Raw position pages: 0
+  Files archived: mamo_base_agent_1_balances_20260913_000227.json, mamo_base_agent_1_raw_debank_history_20260913_000227.json, mamo_base_agent_1_raw_debank_protocols_20260913_000227.json, mamo_base_agent_1_raw_debank_tokens_20260913_000227.json, mamo_base_agent_1_raw_onchain_20260913_000227.json, mamo_base_agent_1_raw_positions_20260913_000227.json, mamo_base_agent_1_raw_transactions_20260913_000227.json, mamo_base_agent_1_transfers_20260913_000227.json
+
+Agent: Surfliquid Base Agent 1 (0x0373beEef981B60dD35D05db9D32DDc100474a11)
+  Transfers exported: 18
+  Balances exported: 5
+  Raw transaction pages: 2
+  Raw position pages: 1
+  Files archived: surfliquid_base_agent_1_balances_20260913_000227.json, surfliquid_base_agent_1_raw_onchain_20260913_000227.json, surfliquid_base_agent_1_raw_positions_20260913_000227.json, surfliquid_base_agent_1_raw_transactions_20260913_000227.json, surfliquid_base_agent_1_transfers_20260913_000227.json
+
+Balance reconciliation:
+  Yieldseeker Base Agent 1 [debank]: stored=$2,017.12 | same-provider=$2,017.12 | cross-provider=$0.00 | on-chain=$2,017.15 (-0.002%) -> OK
+  Yieldseeker Base Agent 2 [debank]: stored=$10,108.25 | same-provider=$10,108.25 | cross-provider=$0.00 | on-chain=$10,108.35 (+$0.12 unverified) (-0.002%) -> OK
+  ZyFAI Base Agent 2 [zerion]: stored=$47,370.07 | same-provider=$0.00 | cross-provider=$47,383.08 | on-chain=$47,383.17 (+$0.57 unverified) (-0.029%) -> OK
+  Mamo Base Agent 1 [debank]: stored=$2,121.45 | same-provider=$2,121.45 | cross-provider=$1,988.96 | on-chain=$2,117.72 (+$3.92 unverified) (-0.009%) -> OK
+  Surfliquid Base Agent 1 [zerion]: stored=$5.51 | same-provider=$63.55 | cross-provider=$5.51 | on-chain=$4.93 (+11.692%) -> OK
+
+All agents completed successfully.

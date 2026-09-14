@@ -1,0 +1,226 @@
+[
+  {
+    "id": "base_merkl",
+    "chain": "base",
+    "name": "Merkl",
+    "site_url": "https://app.merkl.xyz",
+    "logo_url": "https://static.debank.com/image/project/logo_url/base_merkl/d7c85c3f12969282a4db46cd5891b3fd.png",
+    "has_supported_portfolio": true,
+    "tvl": 1450592.1273689754,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 1.324276177044224,
+          "debt_usd_value": 0,
+          "net_usd_value": 1.324276177044224
+        },
+        "asset_dict": {
+          "0xa88594d404727625a9437c3f886c7643872296ae": 537.9130633474877,
+          "0xbaa5cc21fd487b8fcc2f632f3f4e8d37262a0842": 0.12448852952101488
+        },
+        "asset_token_list": [
+          {
+            "id": "0xa88594d404727625a9437c3f886c7643872296ae",
+            "chain": "base",
+            "name": "WELL",
+            "symbol": "WELL",
+            "display_symbol": null,
+            "optimized_symbol": "WELL",
+            "decimals": 18,
+            "logo_url": "https://static.debank.com/image/mobm_token/logo_url/0x511ab53f793683763e5a8829738301368a2411e3/b82e97dd371cfdacb522ffebd7840729.png",
+            "protocol_id": "",
+            "price": 0.0019597005327896305,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1704752551.0,
+            "amount": 537.9130633474877
+          },
+          {
+            "id": "0xbaa5cc21fd487b8fcc2f632f3f4e8d37262a0842",
+            "chain": "base",
+            "name": "Morpho Token",
+            "symbol": "MORPHO",
+            "display_symbol": null,
+            "optimized_symbol": "MORPHO",
+            "decimals": 18,
+            "logo_url": "https://static.debank.com/image/base_token/logo_url/0xbaa5cc21fd487b8fcc2f632f3f4e8d37262a0842/c092d2c513136e17883955cdd2c62ff1.png",
+            "protocol_id": "base_morphoblue",
+            "price": 2.1699,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1731249905.0,
+            "amount": 0.12448852952101488
+          }
+        ],
+        "update_at": 1789332549.0,
+        "name": "Rewards",
+        "detail_types": [
+          "common"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0xa88594d404727625a9437c3f886c7643872296ae",
+              "chain": "base",
+              "name": "WELL",
+              "symbol": "WELL",
+              "display_symbol": null,
+              "optimized_symbol": "WELL",
+              "decimals": 18,
+              "logo_url": "https://static.debank.com/image/mobm_token/logo_url/0x511ab53f793683763e5a8829738301368a2411e3/b82e97dd371cfdacb522ffebd7840729.png",
+              "protocol_id": "",
+              "price": 0.0019597005327896305,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1704752551.0,
+              "amount": 537.9130633474877
+            },
+            {
+              "id": "0xbaa5cc21fd487b8fcc2f632f3f4e8d37262a0842",
+              "chain": "base",
+              "name": "Morpho Token",
+              "symbol": "MORPHO",
+              "display_symbol": null,
+              "optimized_symbol": "MORPHO",
+              "decimals": 18,
+              "logo_url": "https://static.debank.com/image/base_token/logo_url/0xbaa5cc21fd487b8fcc2f632f3f4e8d37262a0842/c092d2c513136e17883955cdd2c62ff1.png",
+              "protocol_id": "base_morphoblue",
+              "price": 2.1699,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1731249905.0,
+              "amount": 0.12448852952101488
+            }
+          ]
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+          "chain": "base",
+          "project_id": "base_merkl",
+          "adapter_id": "merkl_reward",
+          "controller": "0x3ef3d8ba38ebe18db133cec108f4d14ce00dd9ae",
+          "index": null,
+          "time_at": 1691171679
+        }
+      }
+    ]
+  },
+  {
+    "id": "base_moonwell",
+    "chain": "base",
+    "name": "Moonwell",
+    "site_url": "https://moonwell.fi",
+    "logo_url": "https://static.debank.com/image/project/logo_url/base_moonwell/c404f3c96c81c6dce2259517cb9ea5ce.png",
+    "has_supported_portfolio": true,
+    "tvl": 29256667.622126933,
+    "portfolio_item_list": [
+      {
+        "stats": {
+          "asset_usd_value": 2119.7937366823858,
+          "debt_usd_value": 0,
+          "net_usd_value": 2119.7937366823858
+        },
+        "asset_dict": {
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 2116.595786864367,
+          "0xa88594d404727625a9437c3f886c7643872296ae": 1307.7408962714323
+        },
+        "asset_token_list": [
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "chain": "base",
+            "name": "USD Coin",
+            "symbol": "USDC",
+            "display_symbol": null,
+            "optimized_symbol": "USDC",
+            "decimals": 6,
+            "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+            "protocol_id": "",
+            "price": 1.000300090027008,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1692383789.0,
+            "amount": 2116.595786864367
+          },
+          {
+            "id": "0xa88594d404727625a9437c3f886c7643872296ae",
+            "chain": "base",
+            "name": "WELL",
+            "symbol": "WELL",
+            "display_symbol": null,
+            "optimized_symbol": "WELL",
+            "decimals": 18,
+            "logo_url": "https://static.debank.com/image/mobm_token/logo_url/0x511ab53f793683763e5a8829738301368a2411e3/b82e97dd371cfdacb522ffebd7840729.png",
+            "protocol_id": "",
+            "price": 0.0019597005327896305,
+            "is_verified": true,
+            "is_core": true,
+            "is_wallet": true,
+            "time_at": 1704752551.0,
+            "amount": 1307.7408962714323
+          }
+        ],
+        "update_at": 1789332549.0,
+        "name": "Lending",
+        "detail_types": [
+          "lending"
+        ],
+        "detail": {
+          "supply_token_list": [
+            {
+              "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "chain": "base",
+              "name": "USD Coin",
+              "symbol": "USDC",
+              "display_symbol": null,
+              "optimized_symbol": "USDC",
+              "decimals": 6,
+              "logo_url": "https://static.debank.com/image/eth_token/logo_url/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48/fffcd27b9efff5a86ab942084c05924d.png",
+              "protocol_id": "",
+              "price": 1.000300090027008,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1692383789.0,
+              "amount": 2116.595786864367
+            }
+          ],
+          "reward_token_list": [
+            {
+              "id": "0xa88594d404727625a9437c3f886c7643872296ae",
+              "chain": "base",
+              "name": "WELL",
+              "symbol": "WELL",
+              "display_symbol": null,
+              "optimized_symbol": "WELL",
+              "decimals": 18,
+              "logo_url": "https://static.debank.com/image/mobm_token/logo_url/0x511ab53f793683763e5a8829738301368a2411e3/b82e97dd371cfdacb522ffebd7840729.png",
+              "protocol_id": "",
+              "price": 0.0019597005327896305,
+              "is_verified": true,
+              "is_core": true,
+              "is_wallet": true,
+              "time_at": 1704752551.0,
+              "amount": 1307.7408962714323
+            }
+          ]
+        },
+        "proxy_detail": {},
+        "pool": {
+          "id": "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c",
+          "chain": "base",
+          "project_id": "base_moonwell",
+          "adapter_id": "moonwell_proxy_lending",
+          "controller": "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c",
+          "index": null,
+          "time_at": 1691114127
+        }
+      }
+    ]
+  }
+]
