@@ -147,13 +147,20 @@ gcloud storage ls gs://$PROJECT_ID-zerion-raw-data/
 
 Once this is working, add Cloud Scheduler + Cloud Workflows (see [`terraform/`](../terraform)) to run it automatically, then layer on BigQuery and dbt later.
 
-## Data Pipeline Architecture
+## Documentation & Architecture
 
-- **AWS / Supabase version:** [`docs/pipeline_architecture.md`](docs/pipeline_architecture.md) + [`docs/pipeline_diagram.png`](docs/pipeline_diagram.png)
-- **GCP version:** [`docs/pipeline_architecture_gcp.md`](docs/pipeline_architecture_gcp.md) + [`docs/pipeline_diagram_gcp.png`](docs/pipeline_diagram_gcp.png)
-- **GCP Terraform IaC:** [`terraform/`](terraform/)
-- **GCP minimal Terraform IaC:** [`terraform/minimal/`](terraform/minimal/)
-- **GCP cost estimate (30-min runs):** [`docs/cost_estimate_gcp.md`](docs/cost_estimate_gcp.md)
+Complete technical specifications, runbooks, and architectures are located in [`docs/`](docs/README.md):
+
+- **[Documentation Index](docs/README.md):** Master index for all project documentation.
+- **[Core Pipeline & Storage (Python)](docs/core_pipeline_and_storage.md):** Deep-dive into `main.py`, `rpc_client.py`, `zerion_client.py`, `uniblock_client.py`, `storage.py`, and `bigquery_loader.py`.
+- **[RPC Client Architecture & Flow](docs/rpc_client_architecture.md):** Base JSON-RPC verification architecture, ABI method selectors, and dual-key failover diagram.
+- **[Scripts Documentation Manual](docs/scripts_documentation.md):** Detailed reference guide for all 18 Python and PowerShell operational scripts.
+- **[GCP Production Cost Audit](docs/cost_estimate_gcp.md):** Real-world cost breakdown based on 30 days of production telemetry ($0.00 – $0.15/mo).
+- **[Data Provider Evaluation](docs/provider_evaluation_report.md):** Zerion REST API vs. DeBank Open API / Uniblock proxy benchmark and coverage comparison.
+- **[Portfolio Comparisons & Value Checks](docs/comparisons_and_value_checks/README.md):** Historical balance mismatch reports, reconciliation audits, and multi-agent comparisons.
+- **[GCP Enterprise Architecture](docs/pipeline_architecture_gcp.md):** Full Cloud Run, Cloud Scheduler, Cloud Build, Artifact Registry, BigQuery, and GCS architecture ([Diagram](docs/pipeline_diagram_gcp.png)).
+- **[AWS / Supabase Architecture](docs/pipeline_architecture.md):** Alternative staging architecture ([Diagram](docs/pipeline_diagram.png)).
+- **[GCP Terraform IaC](terraform/):** Infrastructure-as-Code definitions ([Minimal IaC](terraform/minimal/)).
 
 ## Knowledge Base
 
