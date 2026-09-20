@@ -7,5 +7,10 @@ agents:
     address: "0xBf96c935F7cB35b86Efaa0693D81d875f4B4e7eb"
   - name: Mamo Base Agent 1
     address: "0x7c4f5EfCE7ebD0E99D9d38CAd4573140087162dd"
-  - name: Surfliquid Base Agent 1
-    address: "0x0373beEef981B60dD35D05db9D32DDc100474a11"
+  - name: Zyfai Risky Agent
+    address: "0x6a9e4e59df3e65fdb6a2f8d1ab6f0cd3943c015b"
+  - name: Mamo AB Agent Abdelhak
+    address: "0x7d42ae4ec4367b52dc03abfc077461cf5c48b256"
+  - name: Zyfai conservative Agent
+    address: "0x3de51ddb55ffec013f428288559dd993e9eeb6b6"
+

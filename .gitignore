@@ -15,9 +15,15 @@ venv/
 
 # Logs
 *.log
+logs/
+logs_downloads/
 
-# Output data
+# Output data & downloads
 output/
+archive_downloads/
+RECV/
+Archive/
+bq_exports/
 
 # IDE
 .vscode/

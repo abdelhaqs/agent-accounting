@@ -123,11 +123,18 @@ def main():
     chain_ids = args.chain_ids.strip() or None
     zerion = ZerionClient(zerion_key, rate_limit_delay=args.rate_limit_delay)
     uniblock = None
-    if os.getenv("UNIBLOCK_API_KEY"):
-        uniblock = UniblockClient(os.getenv("UNIBLOCK_API_KEY"), rate_limit_delay=args.rate_limit_delay)
-        logger.info("DeBank fallback enabled")
+    uniblock_key = os.getenv("UNIBLOCK_API_KEY")
+    uniblock_backup = os.getenv("UNIBLOCK_API_KEY_BACKUP")
+    if uniblock_key or uniblock_backup:
+        uniblock = UniblockClient(
+            uniblock_key or "",
+            backup_api_key=uniblock_backup,
+            rate_limit_delay=args.rate_limit_delay,
+        )
+        logger.info("DeBank fallback enabled (%d key(s) configured)", len(uniblock.api_keys))
     else:
         logger.warning("UNIBLOCK_API_KEY not set — no fallback, Zerion failures will be skipped")
+
 
     run_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     out_root = Path(args.output)

@@ -941,18 +941,33 @@ def main():
 
     uniblock_client = None
     uniblock_key = os.getenv("UNIBLOCK_API_KEY")
-    if uniblock_key and not args.skip_uniblock:
+    uniblock_backup_key = os.getenv("UNIBLOCK_API_KEY_BACKUP")
+    if (uniblock_key or uniblock_backup_key) and not args.skip_uniblock:
         from uniblock_client import UniblockClient
 
-        uniblock_client = UniblockClient(uniblock_key, rate_limit_delay=args.rate_limit_delay)
-        logger.info("Uniblock/DeBank fallback enabled for Zerion-unsupported wallets")
+        uniblock_client = UniblockClient(
+            uniblock_key or "",
+            backup_api_key=uniblock_backup_key,
+            rate_limit_delay=args.rate_limit_delay,
+        )
+        logger.info(
+            "Uniblock/DeBank fallback enabled for Zerion-unsupported wallets (%d key(s) configured)",
+            len(uniblock_client.api_keys),
+        )
 
     rpc_client = None
-    if uniblock_key and not args.skip_rpc:
+    if (uniblock_key or uniblock_backup_key) and not args.skip_rpc:
         from rpc_client import UniblockRpcClient
 
-        rpc_client = UniblockRpcClient(uniblock_key)
-        logger.info("On-chain (JSON-RPC) balance verification enabled")
+        rpc_client = UniblockRpcClient(
+            uniblock_key or "",
+            backup_api_key=uniblock_backup_key,
+        )
+        logger.info(
+            "On-chain (JSON-RPC) balance verification enabled (%d key(s) configured)",
+            len(rpc_client.api_keys),
+        )
+
 
     failed_agents: list[str] = []
     run_entries: list[dict[str, Any]] = []

@@ -281,11 +281,11 @@ agents:
         with tempfile.TemporaryDirectory() as tmpdir:
             run_timestamp = "20260829_120000"
             run_dir = Path(tmpdir) / "test_agent" / run_timestamp
-            export_json(self.storage, self.wallet, run_dir)
+            export_json(self.storage, self.wallet, run_dir, run_timestamp)
             export_raw([{"page": 1}], [{"page": 1}], run_dir, run_timestamp)
 
-            transfers_path = run_dir / "transfers.json"
-            balances_path = run_dir / "balances.json"
+            transfers_path = run_dir / f"transfers_{run_timestamp}.json"
+            balances_path = run_dir / f"balances_{run_timestamp}.json"
             raw_tx_path = run_dir / f"raw_transactions_{run_timestamp}.json"
             raw_pos_path = run_dir / f"raw_positions_{run_timestamp}.json"
 
@@ -347,20 +347,80 @@ agents:
                             "--agents-config", agents_path,
                             "--db-path", db_path,
                             "--output-dir", tmpdir,
+                            "--archive-dir", str(Path(tmpdir) / "archive"),
+                            "--skip-uniblock",
+                            "--skip-rpc",
                             "--log-file", "",
                         ]):
                             from main import main as main_func
                             main_func()
 
-                        # Bad agent should have no output folder; good agent should.
-                        good_agent_dir = Path(tmpdir) / "good_agent"
-                        self.assertTrue(good_agent_dir.exists())
-                        self.assertTrue(any(good_agent_dir.iterdir()))
-                        self.assertFalse((Path(tmpdir) / "bad_agent").exists())
+                        archive_dir = Path(tmpdir) / "archive"
+                        self.assertTrue(archive_dir.exists())
+                        self.assertTrue(any(archive_dir.glob("good_agent*")))
+                        self.assertFalse(any(archive_dir.glob("bad_agent*")))
         finally:
             Path(agents_path).unlink(missing_ok=True)
             Path(db_path).unlink(missing_ok=True)
 
 
+class TestUniblockBackupKeys(unittest.TestCase):
+    def test_parse_keys(self):
+        from uniblock_client import _parse_keys
+
+        self.assertEqual(_parse_keys("key1"), ["key1"])
+        self.assertEqual(_parse_keys("key1, key2"), ["key1", "key2"])
+        self.assertEqual(_parse_keys("key1", "key2"), ["key1", "key2"])
+        self.assertEqual(_parse_keys(["key1"], ["key2", "key1"]), ["key1", "key2"])
+        self.assertEqual(_parse_keys(None, "backup"), ["backup"])
+
+    @patch("requests.Session.get")
+    def test_uniblock_client_failover_on_429(self, mock_get):
+        from requests.models import Response
+        from uniblock_client import UniblockClient
+
+        resp_429 = Response()
+        resp_429.status_code = 429
+        resp_429._content = b'{"message":"Exceeded quota"}'
+
+        resp_200 = Response()
+        resp_200.status_code = 200
+        resp_200._content = b'{"total_usd_value": 1234.56}'
+
+        mock_get.side_effect = [resp_429, resp_200]
+
+        client = UniblockClient("primary_key", backup_api_key="backup_key", rate_limit_delay=0)
+        self.assertEqual(client.session.headers["x-api-key"], "primary_key")
+
+        result = client.get_total_balance("0x1234")
+        self.assertEqual(result["total_usd_value"], 1234.56)
+        self.assertEqual(client.session.headers["x-api-key"], "backup_key")
+        self.assertEqual(mock_get.call_count, 2)
+
+    @patch("requests.Session.post")
+    def test_uniblock_rpc_client_failover_on_429(self, mock_post):
+        from requests.models import Response
+        from rpc_client import UniblockRpcClient
+
+        resp_429 = Response()
+        resp_429.status_code = 429
+        resp_429._content = b'{"message":"Exceeded quota"}'
+
+        resp_200 = Response()
+        resp_200.status_code = 200
+        resp_200._content = b'{"jsonrpc":"2.0","id":1,"result":"0x10"}'
+
+        mock_post.side_effect = [resp_429, resp_200]
+
+        client = UniblockRpcClient("primary_key", backup_api_key="backup_key", rate_limit_delay=0)
+        self.assertEqual(client.session.headers["x-api-key"], "primary_key")
+
+        result = client.call("eth_blockNumber", [])
+        self.assertEqual(result, "0x10")
+        self.assertEqual(client.session.headers["x-api-key"], "backup_key")
+        self.assertEqual(mock_post.call_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main()
+
