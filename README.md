@@ -151,10 +151,19 @@ Once this is working, add Cloud Scheduler + Cloud Workflows (see [`terraform/`](
 
 Complete technical specifications, runbooks, and architectures are located in [`docs/`](docs/README.md):
 
-- **[Documentation Index](docs/README.md):** Master index for all project documentation.
-- **[Core Pipeline & Storage (Python)](docs/core_pipeline_and_storage.md):** Deep-dive into `main.py`, `rpc_client.py`, `zerion_client.py`, `uniblock_client.py`, `storage.py`, and `bigquery_loader.py`.
-- **[RPC Client Architecture & Flow](docs/rpc_client_architecture.md):** Base JSON-RPC verification architecture, ABI method selectors, and dual-key failover diagram.
-- **[Scripts Documentation Manual](docs/scripts_documentation.md):** Detailed reference guide for all 18 Python and PowerShell operational scripts.
+### Python ETL Pipeline Scripts (`docs/etl/`)
+- **[`main.py`](docs/etl/main.md):** Pipeline orchestrator, multi-agent loop, staging, and archiving.
+- **[`zerion_client.py`](docs/etl/zerion_client.md):** Primary Zerion REST API client (portfolio, positions, transfers).
+- **[`uniblock_client.py`](docs/etl/uniblock_client.md):** DeBank proxy client with automated dual-key failover.
+- **[`rpc_client.py`](docs/etl/rpc_client.md):** Base JSON-RPC node client for independent contract ground-truth checks.
+- **[`storage.py`](docs/etl/storage.md):** Local SQLite engine (`zerion.db`) schemas and upsert operations.
+- **[`bigquery_loader.py`](docs/etl/bigquery_loader.md):** Google BigQuery streaming/batch ingestion schemas and tables.
+
+### Architecture & Operations Guides
+- **[Documentation Index](docs/README.md):** Master catalog of all documentation.
+- **[Core Pipeline & Storage (Python)](docs/core_pipeline_and_storage.md):** High-level 3-stage architecture overview.
+- **[RPC Client Architecture & Flow](docs/rpc_client_architecture.md):** Base JSON-RPC verification architecture, ABI method selectors, and failover diagram.
+- **[Scripts Documentation Manual](docs/scripts_documentation.md):** Reference guide for all 18 Python and PowerShell operational scripts.
 - **[GCP Production Cost Audit](docs/cost_estimate_gcp.md):** Real-world cost breakdown based on 30 days of production telemetry ($0.00 – $0.15/mo).
 - **[Data Provider Evaluation](docs/provider_evaluation_report.md):** Zerion REST API vs. DeBank Open API / Uniblock proxy benchmark and coverage comparison.
 - **[Portfolio Comparisons & Value Checks](docs/comparisons_and_value_checks/README.md):** Historical balance mismatch reports, reconciliation audits, and multi-agent comparisons.
