@@ -154,18 +154,19 @@ Complete technical specifications, runbooks, and architectures are located in [`
 ### Python ETL Pipeline Scripts (`docs/etl/`)
 - **[`main.py`](docs/etl/main.md):** Pipeline orchestrator, multi-agent loop, staging, and archiving.
 - **[`zerion_client.py`](docs/etl/zerion_client.md):** Primary Zerion REST API client (portfolio, positions, transfers).
-- **[`uniblock_client.py`](docs/etl/uniblock_client.md):** DeBank proxy client with automated dual-key failover.
+- **[`uniblock_client.py`](docs/etl/uniblock_client.md):** Uniblock Unified API client with automated dual-key failover.
 - **[`rpc_client.py`](docs/etl/rpc_client.md):** Base JSON-RPC node client for independent contract ground-truth checks.
-- **[`storage.py`](docs/etl/storage.md):** Local SQLite engine (`zerion.db`) schemas and upsert operations.
+- **[`storage.py`](docs/etl/storage.md):** Local SQLite engine (`zerion.db`) schemas and upsert operations for offline testing.
 - **[`bigquery_loader.py`](docs/etl/bigquery_loader.md):** Google BigQuery streaming/batch ingestion schemas and tables.
 
 ### Architecture & Operations Guides
 - **[Documentation Index](docs/README.md):** Master catalog of all documentation.
-- **[Core Pipeline & Storage (Python)](docs/core_pipeline_and_storage.md):** High-level 3-stage architecture overview.
+- **[Core Production Architecture](docs/core_pipeline_and_storage.md):** High-level 3-stage production architecture (Extract, Verify, Archive & Load).
+- **[Local Testing & Development Guide](docs/local_testing_and_development.md):** Guide for offline development, local SQLite (`zerion.db`), diagnostic tools, and unit testing.
 - **[RPC Client Architecture & Flow](docs/rpc_client_architecture.md):** Base JSON-RPC verification architecture, ABI method selectors, and failover diagram.
 - **[Scripts Documentation Manual](docs/scripts_documentation.md):** Reference guide for all 18 Python and PowerShell operational scripts.
 - **[GCP Production Cost Audit](docs/cost_estimate_gcp.md):** Real-world cost breakdown based on 30 days of production telemetry ($0.00 – $0.15/mo).
-- **[Data Provider Evaluation](docs/provider_evaluation_report.md):** Zerion REST API vs. DeBank Open API / Uniblock proxy benchmark and coverage comparison.
+- **[Data Provider Evaluation](docs/provider_evaluation_report.md):** Zerion REST API vs. Uniblock Unified API coverage, latency, and reliability.
 - **[Portfolio Comparisons & Value Checks](docs/comparisons_and_value_checks/README.md):** Historical balance mismatch reports, reconciliation audits, and multi-agent comparisons.
 - **[GCP Enterprise Architecture](docs/pipeline_architecture_gcp.md):** Full Cloud Run, Cloud Scheduler, Cloud Build, Artifact Registry, BigQuery, and GCS architecture ([Diagram](docs/pipeline_diagram_gcp.png)).
 - **[AWS / Supabase Architecture](docs/pipeline_architecture.md):** Alternative staging architecture ([Diagram](docs/pipeline_diagram.png)).

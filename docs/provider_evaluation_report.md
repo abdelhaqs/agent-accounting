@@ -1,17 +1,17 @@
-# Data Provider Evaluation: Zerion vs. DeBank (via Uniblock)
+# Data Provider Evaluation: Zerion vs. Uniblock Unified API
 
-**Date:** 2026-09-12
-**Scope:** Agent-accounting pipeline on GCP — 5 Base-chain agent wallets, balance snapshots 2026-08-30 → 2026-09-08 (191 balance snapshot files)
-**Audience:** Team report — provider selection recommendation
+**Date:** 2026-09-12 (Updated 2026-09-20)  
+**Scope:** Agent-accounting pipeline on GCP — 5 Base-chain agent wallets, balance snapshots 2026-08-30 → 2026-09-08 (191 balance snapshot files)  
+**Audience:** Team report — provider selection recommendation  
 
 ---
 
 ## TL;DR
 
 - **Both providers return accurate USD values where they can be checked.** On the one direct overlap (ZyFAI, 2026-09-02), Zerion's two pipelines agreed within **0.011%**, and day-over-day trends are smooth for all agents.
-- **DeBank is the better data provider for accounting purposes.** Its schema carries protocol-level position IDs (`Moonwell: Lending #3ef26c`, `Morpho: Yield #259ca0`), so duplicate rows are structurally detectable. Across 91 DeBank snapshot files we found **zero** duplicate incidents.
+- **Uniblock Unified API is the superior data provider for accounting purposes.** By abstracting the underlying data sources, its schema carries protocol-level position IDs (`Moonwell: Lending #3ef26c`, `Morpho: Yield #259ca0`), so duplicate rows are structurally detectable. Across 91 snapshot files we found **zero** duplicate incidents.
 - **Zerion's schema is too coarse for reliable accounting.** With only generic `deposit`/`reward`/`wallet` position types and no position ID, **7 of its snapshots double-counted the same USDC deposit** (2× the real balance on 2026-09-06/07), and the duplicate is not reliably detectable from the payload alone — we fixed it only with a value-proximity (1%) heuristic that could in theory merge two genuinely separate positions.
-- **Recommendation: make DeBank (via Uniblock) the primary provider for balance/accounting data; keep Zerion as a secondary source; keep the on-chain JSON-RPC verification layer as ground truth.** Also fix the write path: the duplicate rows are sequential DB ids written microseconds apart — a missing unique constraint on `(wallet, token, position, snapshot)`, not a provider error.
+- **Recommendation: make Uniblock Unified API the primary provider for balance/accounting data; keep Zerion as a secondary source; keep the on-chain JSON-RPC verification layer as ground truth.** Also fix the write path: the duplicate rows are sequential DB ids written microseconds apart — a missing unique constraint on `(wallet, token, position, snapshot)`, not a provider error.
 
 ---
 
@@ -32,7 +32,7 @@ The sync runs on a 6-hour cadence (00:00 / 06:00 / 12:00 / 18:00 UTC). This eval
 Architecture roles in the code:
 
 - **Zerion API v1** — primary source for transfers, positions, and portfolio aggregates.
-- **Uniblock Direct API (DeBank proxy)** — fallback provider for Zerion-unsupported wallets; supplies token lists, protocol positions, and history.
+- **Uniblock Unified API** — fallback provider for Zerion-unsupported wallets; abstracts underlying protocols to supply token lists, protocol positions, and history.
 - **Uniblock JSON-RPC (Base mainnet)** — independent ground-truth verification layer (direct `eth_call` to chain, no indexer).
 
 ## 2. Endpoints Used in This Project
@@ -49,9 +49,9 @@ Base URL: `https://api.zerion.io/v1` — Auth: HTTP Basic (API key as username, 
 
 Client behavior: retries 429/5xx with exponential backoff (5 attempts), 0.25 s polite delay between pages (free-tier friendly).
 
-### 2.2 Uniblock Direct API — DeBank proxy (fallback provider)
+### 2.2 Uniblock Unified API (fallback provider)
 
-Base URL: `https://api.uniblock.dev/direct/v1/DeBank` — Auth: `x-api-key` header. Code: `uniblock_client.py`. Docs: <https://docs.uniblock.dev/reference/resources/providers>.
+Base URL: `https://api.uniblock.dev/` — Auth: `x-api-key` header. Code: `uniblock_client.py`. Docs: <https://docs.uniblock.dev/reference/resources/providers>. Uniblock abstracts underlying on-chain data providers into unified endpoints:
 
 | Endpoint | Used for |
 |---|---|

@@ -17,9 +17,9 @@ Individual technical guides for every Python script powering the ETL flow:
 | :--- | :--- | :--- |
 | [**`etl/main.md`**](etl/main.md) | **Orchestrator** | Main CLI execution runner, multi-agent loop, staging, and archiving. |
 | [**`etl/zerion_client.md`**](etl/zerion_client.md) | **Primary Ingestion** | Zerion v1 REST API client (portfolio, positions, transfers, pagination). |
-| [**`etl/uniblock_client.md`**](etl/uniblock_client.md) | **Fallback Ingestion** | DeBank Open API proxy client with automated dual-key failover. |
+| [**`etl/uniblock_client.md`**](etl/uniblock_client.md) | **Fallback Ingestion** | Uniblock Unified API client with automated dual-key failover. |
 | [**`etl/rpc_client.md`**](etl/rpc_client.md) | **On-Chain Verify** | Base JSON-RPC node client for independent contract ground-truth checks. |
-| [**`etl/storage.md`**](etl/storage.md) | **Local Persistence** | Local SQLite engine (`zerion.db`) schemas and upsert operations. |
+| [**`etl/storage.md`**](etl/storage.md) | **Local Persistence** | Local SQLite engine (`zerion.db`) schemas and upsert operations for offline testing. |
 | [**`etl/bigquery_loader.md`**](etl/bigquery_loader.md) | **Warehouse Loader** | Google BigQuery streaming/batch ingestion schemas and reconciliation tables. |
 
 ---
@@ -28,12 +28,13 @@ Individual technical guides for every Python script powering the ETL flow:
 
 | Document | Focus Area | Description |
 | :--- | :--- | :--- |
-| [**`core_pipeline_and_storage.md`**](core_pipeline_and_storage.md) | Pipeline Overview | High-level 3-stage model connecting extraction, verification, and warehouse persistence. |
+| [**`core_pipeline_and_storage.md`**](core_pipeline_and_storage.md) | Production Pipeline | High-level 3-stage model connecting extraction, verification, and warehouse persistence. |
+| [**`local_testing_and_development.md`**](local_testing_and_development.md) | Local Testing & Dev | Guide for local CLI execution, SQLite (`zerion.db`), offline testing, and pytest suites. |
 | [**`rpc_client_architecture.md`**](rpc_client_architecture.md) | On-Chain Verification | Mermaid architecture diagram, ABI function selectors, and dual-key failover specifications for Base JSON-RPC verification. |
 | [**`pipeline_architecture_gcp.md`**](pipeline_architecture_gcp.md) | GCP Cloud Architecture | Complete cloud deployment architecture (Cloud Run, Cloud Scheduler, Cloud Build, Artifact Registry, BigQuery, GCS). |
 | [**`pipeline_architecture.md`**](pipeline_architecture.md) | Pipeline Data Flow | High-level data flow from wallet ingestion to local SQLite, staging, flat archiving, and reporting. |
 | [**`scripts_documentation.md`**](scripts_documentation.md) | Script Reference Manual | Comprehensive CLI parameters, usage instructions, and examples for all 18 Python and PowerShell scripts. |
-| [**`provider_evaluation_report.md`**](provider_evaluation_report.md) | Data Provider Audit | Evaluation of Zerion REST API vs. DeBank Open API / Uniblock proxy coverage, latency, and reliability. |
+| [**`provider_evaluation_report.md`**](provider_evaluation_report.md) | Data Provider Audit | Evaluation of Zerion REST API vs. Uniblock Unified API coverage, latency, and reliability. |
 | [**`cost_estimate_gcp.md`**](cost_estimate_gcp.md) | Cloud Infrastructure Costs | Detailed cost breakdown of GCP Cloud Run, Cloud Storage, BigQuery, and Secret Manager across scheduled runs. |
 
 ---

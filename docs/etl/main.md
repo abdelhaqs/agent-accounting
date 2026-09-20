@@ -14,13 +14,12 @@
 flowchart TD
     Start([Start Run]) --> LoadConfig[Load agents.yaml & Keys]
     LoadConfig --> Loop{For Each Agent}
-    Loop --> Fetch[Fetch Data: Zerion / DeBank Fallback]
-    Fetch --> Store[Save to SQLite: zerion.db]
-    Store --> Verify[On-Chain Verification: Base JSON-RPC]
-    Verify --> Stage[Stage Exports to RECV/]
-    Stage --> Archive[Move to Immutable Archive/]
+    Loop --> Fetch[Fetch Data: Zerion / Uniblock Unified API]
+    Fetch --> Verify[On-Chain Verification: Base JSON-RPC]
+    Verify --> Stage[Stage Exports to Output Directory]
+    Stage --> Archive[Move to Permanent Archive]
     Archive --> Loop
-    Loop -->|All Done| BQ[Load Data to BigQuery]
+    Loop -->|All Done| BQ[Stream Ingest into BigQuery]
     BQ --> Log[Write Sync Summary Log]
     Log --> Done([Finish Run])
 ```
@@ -39,10 +38,10 @@ flowchart TD
 | `--logs-dir` | Path | `./logs` | Directory for per-run summary text reports. |
 | `--bq-dataset` | String | `agent_accounting`| BigQuery dataset name (env: `BQ_DATASET`). |
 | `--bq-project` | String | *Auto-detected* | Google Cloud Project ID for BigQuery. |
-| `--skip-bq` | Flag | `False` | Skip loading records into BigQuery. |
-| `--skip-uniblock`| Flag | `False` | Disable DeBank fallback when Zerion fails. |
+| `--skip-bq` | Flag | `False` | Skip loading records into BigQuery (useful for local testing). |
+| `--skip-uniblock`| Flag | `False` | Disable Uniblock Unified API fallback when Zerion fails. |
 | `--skip-rpc` | Flag | `False` | Skip on-chain JSON-RPC node balance verification. |
-| `--db-path` | Path | `zerion.db` | Local SQLite database file path. |
+| `--db-path` | Path | `zerion.db` | Local SQLite database file path (for local testing/debugging). |
 | `--rate-limit-delay`| Float | `0.25` | Sleep delay in seconds between consecutive API calls. |
 | `--full-resync` | Flag | `False` | Truncate transfer tables and re-fetch entire history. |
 
@@ -56,9 +55,9 @@ flowchart TD
 
 ### Step 2: Per-Agent Extraction Loop
 For each agent:
-1. **Primary Indexing (`zerion_client.py`):** Queries current portfolio positions and paginated ERC-20 transfers.
-2. **Fallback Indexing (`uniblock_client.py`):** If Zerion returns an error (e.g. 400 Unsupported Address), falls back to DeBank proxy via Uniblock.
-3. **Local Staging (`storage.py`):** Upserts balances and transfer records into local SQLite database.
+1. **Primary Indexing (`zerion_client.py`):** Queries current portfolio positions and paginated ERC-20 transfers via Zerion v1 REST API.
+2. **Fallback Indexing (`uniblock_client.py`):** If Zerion returns an error (e.g. 400 Unsupported Address), falls back to the **Uniblock Unified API**, which abstracts underlying on-chain data sources into a standardized interface.
+3. **Local Staging (`storage.py`):** When running locally, records are cached in SQLite for offline inspection.
 
 ### Step 3: On-Chain Ground Truth Verification (`verify_onchain`)
 - Calls `rpc_client.py` to query Base smart contracts directly.
@@ -69,7 +68,7 @@ For each agent:
 
 ### Step 4: Staging & Permanent Archiving
 - Dumps database tables into timestamped JSON files in `--output-dir` (`RECV/`).
-- Moves all staged JSON files into `--archive-dir` (`Archive/`) with standard prefix naming.
+- Moves all staged JSON files into `--archive-dir` (`Archive/` or mounted GCS bucket) with standard prefix naming.
 
 ### Step 5: BigQuery Ingestion & Reporting
 - Invokes `bigquery_loader.py` to stream new rows into BigQuery tables: `balances`, `transfers`, and `balance_reconciliation`.
@@ -80,12 +79,12 @@ For each agent:
 ## 4. Execution Examples
 
 ```bash
-# 1. Standard Production Run
+# 1. Standard Production Run (GCP Cloud Run or Full Pipeline)
 python main.py
 
-# 2. Sync Single Wallet Locally without BigQuery
+# 2. Local Testing Run (Bypassing BigQuery)
 python main.py --wallet 0x6a9e4e59df3e65fdb6a2f8d1ab6f0cd3943c015b --skip-bq
 
-# 3. Custom Archive and Logs Destinations
-python main.py --output-dir ./tmp_recv --archive-dir ./data_archive --logs-dir ./run_logs
+# 3. Custom Local Directories
+python main.py --output-dir ./tmp_recv --archive-dir ./data_archive --logs-dir ./run_logs --skip-bq
 ```

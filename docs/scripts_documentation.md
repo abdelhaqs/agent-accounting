@@ -15,10 +15,10 @@ This document serves as the comprehensive technical reference for all Python and
 | [`main.py`](file:///c:/Users/chris/Projects/agent-accounting/main.py) | Python | Core pipeline: ingest, reconcile, verify on-chain, export & archive | `python main.py` |
 | [`rpc_client.py`](file:///c:/Users/chris/Projects/agent-accounting/rpc_client.py) | Python | Base JSON-RPC client with automated key failover | *Imported by `main.py`* |
 | [`zerion_client.py`](file:///c:/Users/chris/Projects/agent-accounting/zerion_client.py) | Python | Zerion API v1 client (transfers, positions, wallets) | *Imported by `main.py`* |
-| [`uniblock_client.py`](file:///c:/Users/chris/Projects/agent-accounting/uniblock_client.py) | Python | Uniblock DeBank REST proxy client with failover | *Imported by `main.py`* |
-| [`storage.py`](file:///c:/Users/chris/Projects/agent-accounting/storage.py) | Python | SQLite persistence layer (`zerion.db`) | *Imported by `main.py`* |
+| [`uniblock_client.py`](file:///c:/Users/chris/Projects/agent-accounting/uniblock_client.py) | Python | Uniblock Unified API client with automated failover | *Imported by `main.py`* |
+| [`storage.py`](file:///c:/Users/chris/Projects/agent-accounting/storage.py) | Python | SQLite persistence layer for local testing (`zerion.db`) | *Imported by `main.py`* |
 | [`bigquery_loader.py`](file:///c:/Users/chris/Projects/agent-accounting/bigquery_loader.py) | Python | BigQuery exporter (`balances`, `transfers`, `reconciliation`) | *Imported by `main.py`* |
-| [`demo_fetch.py`](file:///c:/Users/chris/Projects/agent-accounting/demo_fetch.py) | Python | CLI testing tool to probe Zerion and DeBank for any agent | `python demo_fetch.py --wallet 0x...` |
+| [`demo_fetch.py`](file:///c:/Users/chris/Projects/agent-accounting/demo_fetch.py) | Python | CLI testing tool to probe Zerion and Uniblock Unified API | `python demo_fetch.py --wallet 0x...` |
 | [`demo_rpc_reader.py`](file:///c:/Users/chris/Projects/agent-accounting/demo_rpc_reader.py) | Python | CLI testing tool to read raw on-chain state via JSON-RPC | `python demo_rpc_reader.py --wallet 0x...` |
 | [`build_usdc_balance_data.py`](file:///c:/Users/chris/Projects/agent-accounting/build_usdc_balance_data.py) | Python | Aggregates archive snapshots for the interactive HTML chart | `python build_usdc_balance_data.py` |
 | [`test_sync.py`](file:///c:/Users/chris/Projects/agent-accounting/test_sync.py) | Python | Pytest unit test suite (12 tests) | `pytest test_sync.py` |
@@ -41,12 +41,11 @@ This document serves as the comprehensive technical reference for all Python and
 #### Core Workflow:
 ```mermaid
 flowchart LR
-    A["Load Config (agents.yaml)"] --> B["Fetch Balances & Transfers (Zerion / DeBank)"]
+    A["Load Config (agents.yaml)"] --> B["Fetch Balances & Transfers (Zerion / Uniblock Unified API)"]
     B --> C["On-Chain RPC Verification (verify_onchain)"]
-    C --> D["Local Persistence (SQLite zerion.db)"]
-    D --> E["Export Staging (RECV/) & Move to Archive (Archive/)"]
-    E --> F["BigQuery Ingestion (bigquery_loader.py)"]
-    F --> G["Write Run Summary (logs/sync_log_*.txt)"]
+    C --> D["Export Staging (RECV/) & Move to Archive (Archive/)"]
+    D --> E["BigQuery Ingestion (bigquery_loader.py)"]
+    E --> F["Write Run Summary (logs/sync_log_*.txt)"]
 ```
 
 #### CLI Parameters:
@@ -58,14 +57,14 @@ flowchart LR
 - `--logs-dir`: Directory for per-run summary text logs (default: `./logs`).
 - `--bq-dataset`: BigQuery target dataset (default: `agent_accounting`, env: `BQ_DATASET`).
 - `--bq-project`: BigQuery Google Cloud project ID (default: inferred from GCP credentials).
-- `--skip-bq`: Flag to skip loading into BigQuery.
-- `--skip-uniblock`: Disables DeBank fallback for wallets unsupported by Zerion.
+- `--skip-bq`: Flag to skip loading into BigQuery (for local testing).
+- `--skip-uniblock`: Disables Uniblock Unified API fallback for wallets unsupported by Zerion.
 - `--skip-rpc`: Disables on-chain JSON-RPC ground-truth verification.
-- `--db-path`: Path to SQLite database file (default: `zerion.db`).
+- `--db-path`: Path to SQLite database file for local testing (default: `zerion.db`).
 
 #### Environment Variables Used:
 - `ZERION_API_KEY`: API key for Zerion REST API.
-- `UNIBLOCK_API_KEY`: Primary API key for DeBank REST proxy and Base JSON-RPC.
+- `UNIBLOCK_API_KEY`: Primary API key for Uniblock Unified API and Base JSON-RPC.
 - `UNIBLOCK_API_KEY_BACKUP`: Secondary backup API key for automated failover.
 - `WALLET_ADDRESS`: Fallback wallet if `agents.yaml` is absent.
 
@@ -96,8 +95,8 @@ flowchart LR
 
 ---
 
-### 2.4. `uniblock_client.py` — DeBank Proxy REST Client
-[`uniblock_client.py`](file:///c:/Users/chris/Projects/agent-accounting/uniblock_client.py) communicates with DeBank Open API via Uniblock's direct proxy (`https://api.uniblock.dev/direct/v1/DeBank`).
+### 2.4. `uniblock_client.py` — Uniblock Unified API Client
+[`uniblock_client.py`](file:///c:/Users/chris/Projects/agent-accounting/uniblock_client.py) communicates with the Uniblock Unified API (`https://api.uniblock.dev/`), which abstracts underlying Web3 data sources and DeFi protocols into a standardized interface.
 
 #### Key Methods:
 - `get_total_balance(wallet)`: High-level USD portfolio balance.
@@ -108,8 +107,8 @@ flowchart LR
 
 ---
 
-### 2.5. `storage.py` — Local Database Layer
-[`storage.py`](file:///c:/Users/chris/Projects/agent-accounting/storage.py) manages the local SQLite database (`zerion.db`) used for staging, deduplication, and local caching.
+### 2.5. `storage.py` — Local Database Layer (Local Testing & Development)
+[`storage.py`](file:///c:/Users/chris/Projects/agent-accounting/storage.py) manages the local SQLite database (`zerion.db`) used for offline staging, deduplication, and local development testing. See [Local Testing & Development Guide](local_testing_and_development.md).
 
 #### Tables Managed:
 1. `balances`: Stores per-token / per-position snapshots (`agent_name`, `wallet`, `token_symbol`, `balance_float`, `usd_value`, `timestamp`).
