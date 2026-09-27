@@ -6,11 +6,9 @@ param(
     [string]$TargetDir = "docs/report"
 )
 
-$ErrorActionPreference = "Stop"
-
 $buckets = @(
-    "$ProjectId-agent-accounting-raw-data",
-    "$ProjectId-zerion-raw-data"
+    "$ProjectId-zerion-raw-data",
+    "$ProjectId-agent-accounting-raw-data"
 )
 
 Write-Host "Checking for reports in Google Cloud Storage..." -ForegroundColor Cyan
@@ -22,15 +20,19 @@ if (-not (Test-Path $TargetDir)) {
 $found = $false
 foreach ($bucket in $buckets) {
     Write-Host "Scanning gs://$bucket/reports/..." -ForegroundColor Yellow
-    $list = & gcloud storage ls "gs://$bucket/reports/" 2>$null
-    if ($LASTEXITCODE -eq 0 -and $list) {
-        Write-Host "Found reports in gs://$bucket/reports/! Downloading..." -ForegroundColor Green
-        & gcloud storage cp -r "gs://$bucket/reports/*" "$TargetDir/"
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Reports downloaded to $TargetDir." -ForegroundColor Green
-            $found = $true
-            break
+    try {
+        $list = cmd /c "gcloud storage ls gs://$bucket/reports/ 2>nul"
+        if ($LASTEXITCODE -eq 0 -and $list) {
+            Write-Host "Found reports in gs://$bucket/reports/! Downloading..." -ForegroundColor Green
+            cmd /c "gcloud storage cp -r gs://$bucket/reports/* $TargetDir/"
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Reports downloaded to $TargetDir." -ForegroundColor Green
+                $found = $true
+                break
+            }
         }
+    } catch {
+        # continue to next bucket
     }
 }
 
