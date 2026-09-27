@@ -178,23 +178,27 @@ def convert_markdown_to_html(md_text: str, title: str = "Agent Accounting Audit 
 
 def main():
     root = Path(__file__).resolve().parent.parent
-    docs_dir = root / "docs" / "comparisons_and_value_checks"
-    if not docs_dir.exists():
-        docs_dir = Path("docs/comparisons_and_value_checks")
-    reports = sorted(docs_dir.glob("all_agents_uniblock_rpc_report_*.md"), reverse=True)
-    if not reports:
-        reports = sorted(docs_dir.glob("*.md"), reverse=True)
+    report_dir = root / "docs" / "report"
+    if not report_dir.exists():
+        report_dir = Path("docs/report")
 
-    if not reports:
-        print("No reports found in docs/comparisons_and_value_checks/")
-        return
+    latest_file = report_dir / "latest_value_check_report.md"
+    if latest_file.exists():
+        latest_report = latest_file
+    else:
+        reports = sorted(report_dir.glob("value_check_report_*.md"), reverse=True)
+        if not reports:
+            reports = sorted(report_dir.glob("*.md"), reverse=True)
+        if not reports:
+            print("No reports found in docs/report/")
+            return
+        latest_report = reports[0]
 
-    latest_report = reports[0]
-    print(f"Reading latest report: {latest_report.name}")
+    print(f"Reading report: {latest_report.name}")
     md_content = latest_report.read_text(encoding="utf-8")
-    html_output = convert_markdown_to_html(md_content, title=f"Agent Accounting — {latest_report.stem}")
+    html_output = convert_markdown_to_html(md_content, title="Agent Accounting — Value Check Dashboard")
 
-    dest_file = docs_dir / "latest_audit_dashboard.html"
+    dest_file = report_dir / "latest_audit_dashboard.html"
     dest_file.write_text(html_output, encoding="utf-8")
     print(f"Compiled standalone dashboard: {dest_file.resolve()}")
 

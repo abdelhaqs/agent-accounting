@@ -913,6 +913,12 @@ def main():
         help="Directory for per-run summary logs (default: ./logs; env: LOGS_DIR)",
     )
     parser.add_argument(
+        "--report-dir",
+        type=str,
+        default=os.getenv("REPORT_DIR", "docs/report"),
+        help="Directory for markdown value check reports (default: docs/report; env: REPORT_DIR)",
+    )
+    parser.add_argument(
         "--bq-dataset",
         type=str,
         default=os.getenv("BQ_DATASET", "agent_accounting"),
@@ -1275,6 +1281,28 @@ def main():
         )
         for run_dir, prefix in staged:
             move_to_archive(run_dir, archive_dir, prefix)
+
+    # Automatically generate markdown value check report in docs/report/
+    try:
+        from value_check_reporter import generate_value_check_report
+
+        rep_dir = Path(args.report_dir)
+        if not rep_dir.is_absolute() and not rep_dir.exists():
+            candidate = _root_dir / rep_dir
+            if candidate.parent.exists():
+                rep_dir = candidate
+        rep_file = generate_value_check_report(
+            report_dir=rep_dir,
+            run_timestamp=run_timestamp,
+            reconciliation=reconciliation_records,
+            entries=run_entries,
+            failed_agents=failed_agents,
+            primary_source=args.source,
+            onchain_results=onchain_results,
+        )
+        logger.info("Generated markdown value check report: %s", rep_file)
+    except Exception as rep_exc:
+        logger.warning("Could not generate value check report: %s", rep_exc, exc_info=True)
 
     if failed_agents:
         logger.warning("Completed with %d failed agent(s): %s", len(failed_agents), failed_agents)

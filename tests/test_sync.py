@@ -351,6 +351,7 @@ agents:
                             "--skip-uniblock",
                             "--skip-rpc",
                             "--log-file", "",
+                            "--report-dir", str(Path(tmpdir) / "report"),
                         ]):
                             from main import main as main_func
                             main_func()
