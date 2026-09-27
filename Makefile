@@ -10,7 +10,7 @@ help:
 	@echo "make clean       : Remove Python bytecode and temporary caches"
 
 test:
-	pytest test_sync.py test_data_quality.py -v
+	pytest tests/ -v
 
 lint:
 	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=local_tests,venv,.venv,archive_downloads,Archive
@@ -20,7 +20,7 @@ format:
 	black --line-length 130 .
 
 data-check:
-	pytest test_data_quality.py -v
+	pytest tests/test_data_quality.py -v
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true

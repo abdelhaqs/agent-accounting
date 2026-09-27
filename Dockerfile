@@ -7,9 +7,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code and agent config.
-COPY main.py zerion_client.py storage.py bigquery_loader.py uniblock_client.py rpc_client.py ./
-COPY agents.yaml ./
+COPY dag/ ./dag/
+COPY config/ ./config/
 
-# Workflow: pull from Zerion -> save timestamped JSONs in RECV (staging)
+ENV PYTHONPATH=/app/dag:/app
+
+# Workflow: pull from Uniblock/DeBank & Base RPC -> save timestamped JSONs in RECV (staging)
 # -> write run log in logs/ -> move JSONs into Archive/.
-CMD ["python", "main.py", "--output-dir", "/output/RECV", "--archive-dir", "/output/Archive", "--logs-dir", "/output/logs"]
+CMD ["python", "dag/main.py", "--agents-config", "config/agents.yaml", "--output-dir", "/output/RECV", "--archive-dir", "/output/Archive", "--logs-dir", "/output/logs"]

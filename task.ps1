@@ -20,7 +20,7 @@ $ErrorActionPreference = "Stop"
 switch ($Command) {
     "test" {
         Write-Host "--> Running full unit test suite..." -ForegroundColor Cyan
-        pytest test_sync.py test_data_quality.py -v
+        pytest tests/ -v
     }
     "lint" {
         Write-Host "--> Linting Python files with flake8..." -ForegroundColor Cyan
@@ -33,11 +33,11 @@ switch ($Command) {
     }
     "data-check" {
         Write-Host "--> Running Data Quality Contracts..." -ForegroundColor Cyan
-        pytest test_data_quality.py -v
+        pytest tests/test_data_quality.py -v
     }
     "report" {
         Write-Host "--> Compiling Audit Report Dashboard to HTML..." -ForegroundColor Cyan
-        python generate_html_report.py
+        python dag/generate_html_report.py
     }
     "clean" {
         Write-Host "--> Cleaning cache files..." -ForegroundColor Cyan

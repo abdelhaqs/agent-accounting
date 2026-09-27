@@ -14,10 +14,23 @@ import yaml
 from dotenv import load_dotenv
 from requests import HTTPError
 
+# Ensure dag directory and project root are in sys.path
+_dag_dir = Path(__file__).resolve().parent
+if str(_dag_dir) not in sys.path:
+    sys.path.insert(0, str(_dag_dir))
+_root_dir = _dag_dir.parent
+if str(_root_dir) not in sys.path:
+    sys.path.append(str(_root_dir))
+
 from rpc_client import UniblockRpcClient
 from storage import Balance, Storage, Transfer
 from uniblock_client import UniblockClient
 from zerion_client import ZerionClient
+
+# Load environment from root and config folders
+load_dotenv()
+load_dotenv(_root_dir / ".env")
+load_dotenv(_root_dir / "config" / ".env")
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
@@ -94,12 +107,25 @@ def load_agents(config_path: str | None) -> list[dict[str, str]]:
     Falls back to a single wallet from WALLET_ADDRESS env var if no config is found.
     Agent name is optional and defaults to the wallet address.
     """
-    if config_path and Path(config_path).exists():
-        with open(config_path, encoding="utf-8") as f:
+    resolved_path = None
+    if config_path:
+        candidates = [
+            Path(config_path),
+            _root_dir / config_path,
+            _root_dir / "config" / Path(config_path).name,
+            _dag_dir / config_path,
+        ]
+        for c in candidates:
+            if c.exists() and c.is_file():
+                resolved_path = c
+                break
+
+    if resolved_path:
+        with open(resolved_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         agents = data.get("agents", [])
         if not agents:
-            raise ValueError(f"No agents found in {config_path}")
+            raise ValueError(f"No agents found in {resolved_path}")
         for agent in agents:
             if not agent.get("name"):
                 agent["name"] = agent["address"]
@@ -853,11 +879,20 @@ def main():
         default=os.getenv("CHAIN_IDS", "base"),
         help="Comma-separated chain ids to sync (default: base; env: CHAIN_IDS; set empty for all chains)",
     )
+    default_agents_cfg = os.getenv("AGENTS_CONFIG")
+    if not default_agents_cfg:
+        for candidate in ["config/agents.yaml", "../config/agents.yaml", "agents.yaml"]:
+            if Path(candidate).exists():
+                default_agents_cfg = candidate
+                break
+        if not default_agents_cfg:
+            default_agents_cfg = "config/agents.yaml"
+
     parser.add_argument(
         "--agents-config",
         type=str,
-        default=os.getenv("AGENTS_CONFIG", "agents.yaml"),
-        help="Path to agents YAML config (default: agents.yaml; env: AGENTS_CONFIG)",
+        default=default_agents_cfg,
+        help="Path to agents YAML config (default: config/agents.yaml; env: AGENTS_CONFIG)",
     )
     parser.add_argument(
         "--output-dir",

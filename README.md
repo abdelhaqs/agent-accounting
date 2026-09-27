@@ -9,43 +9,46 @@ Sync ERC-20 transfer history and current token balances (including vault share t
 3. Pulls current positions via `GET /v1/wallets/{wallet}/positions?filter[positions]=no_filter` so vault share / LP / receipt tokens are included.
 4. Stores everything in a local SQLite database (`zerion.db`), tagged by wallet and agent name.
 
+## Project Layout
+
+```text
+agent-accounting/
+├── config/              # Configuration files (agents.yaml, .env.example)
+├── dag/                 # Pipeline & ETL scripts (main.py, clients, loader, quality)
+├── docs/                # Architecture docs, deployment guides, audit reports
+├── tests/               # Unit tests & data quality contracts
+├── terraform/           # GCP Infrastructure as Code
+├── Dockerfile           # Production container definition
+├── Makefile             # CLI automation for Linux/macOS
+├── task.ps1             # CLI automation for Windows PowerShell
+└── requirements.txt     # Python dependencies
+```
+
 ## Setup
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env
-# edit .env with your ZERION_API_KEY
+cp config/.env.example .env
+# edit .env with your UNIBLOCK_API_KEY
 ```
 
 ## Configuring agents (wallets)
 
-The script reads wallets from `agents.yaml` by default. Each wallet is treated as an "agent" and gets its own raw + processed data.
-
-Example `agents.yaml`:
-
-```yaml
-agents:
-  - name: Yieldseeker Base Agent 2
-    address: "0xe51b7dba38e732a19838c3f23816df7092441597"
-  - name: ZyFAI Base Agent 2
-    address: "0xBf96c935F7cB35b86Efaa0693D81d875f4B4e7eb"
-```
-
-`name` is optional — if omitted, the wallet address is used as the agent name and output folder name:
-
-```yaml
-agents:
-  - address: "0xe51b7dba38e732a19838c3f23816df7092441597"
-```
-
-If `agents.yaml` is missing, the script falls back to `WALLET_ADDRESS` in `.env`.
+The pipeline reads wallets from `config/agents.yaml` by default. Each wallet is treated as an "agent" and gets its own raw + processed data.
 
 ## Run
 
-Just run:
+Using the task runner:
+```powershell
+# Windows
+.\task.ps1 test
+# Linux/macOS
+make test
+```
 
+Or running the pipeline directly:
 ```bash
-python main.py
+python dag/main.py
 ```
 
 This syncs all agents and exports both processed and raw JSON into per-agent folders under `./output/`.

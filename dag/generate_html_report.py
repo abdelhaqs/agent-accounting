@@ -177,7 +177,10 @@ def convert_markdown_to_html(md_text: str, title: str = "Agent Accounting Audit 
 
 
 def main():
-    docs_dir = Path(__file__).resolve().parent / "docs" / "comparisons_and_value_checks"
+    root = Path(__file__).resolve().parent.parent
+    docs_dir = root / "docs" / "comparisons_and_value_checks"
+    if not docs_dir.exists():
+        docs_dir = Path("docs/comparisons_and_value_checks")
     reports = sorted(docs_dir.glob("all_agents_uniblock_rpc_report_*.md"), reverse=True)
     if not reports:
         reports = sorted(docs_dir.glob("*.md"), reverse=True)
