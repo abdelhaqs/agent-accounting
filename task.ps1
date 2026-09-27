@@ -11,7 +11,7 @@
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("test", "lint", "format", "data-check", "report", "clean", "help")]
+    [ValidateSet("test", "lint", "format", "data-check", "report", "pull-reports", "clean", "help")]
     [string]$Command = "help"
 )
 
@@ -39,6 +39,10 @@ switch ($Command) {
         Write-Host "--> Compiling Audit Report Dashboard to HTML..." -ForegroundColor Cyan
         python dag/generate_html_report.py
     }
+    "pull-reports" {
+        Write-Host "--> Pulling latest audit reports from Google Cloud Storage..." -ForegroundColor Cyan
+        & .\dag\download_reports.ps1
+    }
     "clean" {
         Write-Host "--> Cleaning cache files..." -ForegroundColor Cyan
         Get-ChildItem -Path . -Include __pycache__, .pytest_cache -Recurse -Directory -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
@@ -48,11 +52,12 @@ switch ($Command) {
         Write-Host "Agent Accounting Task Runner" -ForegroundColor Yellow
         Write-Host "Usage: .\task.ps1 [command]"
         Write-Host "Commands:"
-        Write-Host "  test       : Run full unit test suite (pytest)"
-        Write-Host "  lint       : Check code with flake8"
-        Write-Host "  format     : Format code with black"
-        Write-Host "  data-check : Run data quality validation"
-        Write-Host "  report     : Generate HTML dashboard from latest audit report"
-        Write-Host "  clean      : Remove temporary caches"
+        Write-Host "  test         : Run full unit test suite (pytest)"
+        Write-Host "  lint         : Check code with flake8"
+        Write-Host "  format       : Format code with black"
+        Write-Host "  data-check   : Run data quality validation"
+        Write-Host "  report       : Generate HTML dashboard from latest audit report"
+        Write-Host "  pull-reports : Download latest value check reports from GCS into docs/report/"
+        Write-Host "  clean        : Remove temporary caches"
     }
 }

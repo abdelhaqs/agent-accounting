@@ -25,3 +25,7 @@ data-check:
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+
+pull-reports:
+	gcloud storage cp -r gs://agent-accounting-506719-agent-accounting-raw-data/reports/* docs/report/ || true
+

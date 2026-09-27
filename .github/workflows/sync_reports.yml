@@ -1,0 +1,60 @@
+name: Sync Reports from GCP to GitHub
+
+on:
+  schedule:
+    # Run 30 minutes after each 6-hr scheduled Cloud Run sync (00:30, 06:30, 12:30, 18:30 UTC)
+    - cron: '30 0,6,12,18 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Pull GCS Reports & Commit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for GCP Credentials Secret
+        id: check_auth
+        run: |
+          if [ -n "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "has_auth=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_auth=false" >> $GITHUB_OUTPUT
+            echo "::warning ::GCP_SA_KEY secret not found in repository secrets. To enable automatic GCS syncing, add a GCP Service Account key as GCP_SA_KEY."
+          fi
+
+      - name: Authenticate to Google Cloud
+        if: steps:check_auth.outputs.has_auth == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        if: steps:check_auth.outputs.has_auth == 'true'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Download Reports from GCS
+        if: steps:check_auth.outputs.has_auth == 'true'
+        run: |
+          mkdir -p docs/report
+          BUCKET="agent-accounting-506719-agent-accounting-raw-data"
+          echo "Syncing reports from gs://${BUCKET}/reports/..."
+          gcloud storage cp -r "gs://${BUCKET}/reports/*" docs/report/ || true
+
+      - name: Commit and Push New Reports
+        if: steps:check_auth.outputs.has_auth == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/report/
+          if git diff --staged --quiet; then
+            echo "No new reports to commit."
+          else
+            git commit -m "docs(report): sync latest value check reports from GCP [skip ci]"
+            git push origin main
+          fi
