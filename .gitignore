@@ -29,6 +29,9 @@ local_tests/
 RECV/
 Archive/
 bq_exports/
+demo_compare/
+demo_output/
+my_folder/
 
 # Local testing & scratch files
 fetch_zyfai_risky_portfolio.ps1
