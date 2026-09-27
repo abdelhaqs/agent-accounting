@@ -37,6 +37,15 @@ my_folder/
 fetch_zyfai_risky_portfolio.ps1
 run_local_sync.ps1
 *raw.json
+download_archive.ps1
+download_full_archive.ps1
+download_logs.ps1
+export_tables.ps1
+_sample_*.json
+usdc_balances.csv
+demo_fetch.py
+demo_rpc_reader.py
+test_archive_flow.py
 
 # IDE
 .vscode/
