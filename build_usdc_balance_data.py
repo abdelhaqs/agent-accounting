@@ -1,6 +1,6 @@
 """Aggregate USDC balances from archived balance snapshots for the dashboard.
 
-Reads *_balances_YYYYMMDD_HHMMSS.json files from archive_downloads/full_archive,
+Reads *_balances_YYYYMMDD_HHMMSS.json files from archive_downloads,
 sums usd_value of all USDC rows per agent per snapshot, drops near-duplicate
 rows within a snapshot (same position double-inserted with tiny value noise),
 keeps only the last snapshot per agent per day (some days have multiple
@@ -12,12 +12,14 @@ snapshots), and writes:
      JSON is blocked by browsers; in that case the embedded snapshot is used).
 """
 
+import argparse
 import json
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).parent
-ARCHIVE_DIR = ROOT / "archive_downloads" / "full_archive"
+_full_archive_dir = ROOT / "archive_downloads" / "full_archive"
+ARCHIVE_DIR = _full_archive_dir if _full_archive_dir.exists() else (ROOT / "archive_downloads")
 OUTPUT_JSON = ROOT / "usdc_balance_data.json"
 DASHBOARD = ROOT / "usdc_balance_chart.html"
 
@@ -31,10 +33,20 @@ def file_timestamp(ts: str) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Aggregate USDC balances from archive snapshots")
+    parser.add_argument(
+        "--archive-dir",
+        type=Path,
+        default=ARCHIVE_DIR,
+        help="Directory containing balance snapshots (default: archive_downloads)",
+    )
+    args = parser.parse_args()
+    archive_dir = args.archive_dir
+
     records = []
-    files = sorted(ARCHIVE_DIR.glob("*_balances_*.json"))
+    files = sorted(archive_dir.glob("*_balances_*.json"))
     if not files:
-        raise SystemExit(f"No balance files found in {ARCHIVE_DIR}")
+        raise SystemExit(f"No balance files found in {archive_dir}")
 
     for path in files:
         m = BALANCE_FILE_RE.match(path.name)

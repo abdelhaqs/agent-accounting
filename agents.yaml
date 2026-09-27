@@ -7,10 +7,14 @@ agents:
     address: "0xBf96c935F7cB35b86Efaa0693D81d875f4B4e7eb"
   - name: Mamo Base Agent 1
     address: "0x7c4f5EfCE7ebD0E99D9d38CAd4573140087162dd"
-  - name: Zyfai Risky Agent
+  - name: Zyfai AB Risky Agent
     address: "0x6a9e4e59df3e65fdb6a2f8d1ab6f0cd3943c015b"
-  - name: Mamo AB Agent Abdelhak
+    start_block: 51427768
+  - name: Mamo AB Agent
     address: "0x7d42ae4ec4367b52dc03abfc077461cf5c48b256"
-  - name: Zyfai conservative Agent
+    start_block: 51053952
+  - name: Zyfai Yield Maxing Agent
     address: "0x3de51ddb55ffec013f428288559dd993e9eeb6b6"
-
+    start_block: 43587490
+  - name: Conservative Zyfai Agent
+    address: "0xc8118008228edd4769fe42f091e7d099a45c4774"

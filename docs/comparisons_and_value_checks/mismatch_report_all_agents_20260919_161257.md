@@ -27,7 +27,7 @@ Key findings from the latest run:
    - **2 Agents Escalated to False-Positive MISMATCH:** ZyFAI Base Agent 2 ($47,409.80) and Surfliquid Base Agent 1 ($5.88) synced their portfolio positions through Zerion, but their on-chain Base JSON-RPC verification calls (`balanceOf`, `convertToAssets`) routed through Uniblock, returning HTTP 429. The pipeline recorded on-chain ground truth as **$0.00 (+100.000% delta)**, triggering an automatic escalation to `MISMATCH`.
 
 3. **Remediation Ready:**
-   A valid, active backup API key (`6Gqv6O12AkVHyJY4tlqAhczrcqhYG1AOPur7si4WC3M`) has been added locally, and automatic failover has been implemented in the codebase. Once pushed to GCP Secret Manager and redeployed, all 5 agents will return to healthy **OK** status.
+   A valid, active backup API key (`...i4WC3M`) has been added locally, and automatic failover has been implemented in the codebase. Once pushed to GCP Secret Manager and redeployed, all 5 agents will return to healthy **OK** status.
 
 ---
 

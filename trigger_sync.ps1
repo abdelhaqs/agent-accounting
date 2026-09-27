@@ -33,6 +33,10 @@ if (-not $gcloud) {
     throw "gcloud CLI not found. Please install the Google Cloud SDK and authenticate with 'gcloud auth login'."
 }
 
+# Ensure active project and default region are set to avoid interactive prompts
+$env:CLOUDSDK_CORE_PROJECT = $ProjectId
+$env:CLOUDSDK_RUN_REGION = $Region
+
 # 2. Optionally update GCP Secret Manager with current Uniblock key
 if ($UpdateSecret) {
     Write-Host "[Optional] Updating Secret Manager with new Uniblock API key..." -ForegroundColor Yellow
@@ -73,25 +77,31 @@ if ($DeployCode) {
 
 # 4. Trigger Cloud Run Job
 Write-Host "Triggering Cloud Run job '$JobName'..." -ForegroundColor Yellow
-$waitFlag = if ($NoWait) { "" } else { "--wait" }
 
-if ($waitFlag) {
-    gcloud run jobs execute $JobName --region=$Region --project=$ProjectId --wait
+$execFailed = $false
+if ($NoWait) {
+    & gcloud run jobs execute $JobName --region=$Region --project=$ProjectId
+    if ($LASTEXITCODE -ne 0) { $execFailed = $true }
 } else {
-    gcloud run jobs execute $JobName --region=$Region --project=$ProjectId
+    & gcloud run jobs execute $JobName --region=$Region --project=$ProjectId --wait
+    if ($LASTEXITCODE -ne 0) { $execFailed = $true }
 }
 
-if ($LASTEXITCODE -ne 0) {
-    throw "Cloud Run job execution failed or exited with an error code ($LASTEXITCODE)."
+if ($execFailed) {
+    Write-Host ""
+    Write-Host "Execution encountered an error! Fetching container error logs..." -ForegroundColor Red
+    & gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JobName" --limit=25 --format="value(timestamp,textPayload)" --project=$ProjectId
+    Write-Host ""
+    throw "Cloud Run job execution failed with exit code $LASTEXITCODE. See container logs above for details."
 }
 
 Write-Host "Cloud Run job triggered successfully!" -ForegroundColor Green
 Write-Host ""
 
 # 5. Fetch recent logs if requested
-if ($ShowLogs) {
+if ($ShowLogs -and -not $NoWait) {
     Write-Host "Fetching latest Cloud Run execution logs (last 30 entries)..." -ForegroundColor Yellow
-    gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JobName" --limit=30 --format="value(timestamp,textPayload)" --project=$ProjectId
+    & gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JobName" --limit=30 --format="value(timestamp,textPayload)" --project=$ProjectId
     Write-Host ""
 }
 

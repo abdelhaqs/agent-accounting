@@ -19,10 +19,14 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+import os
+
 logger = logging.getLogger(__name__)
 
 BASE_CHAIN_ID = 8453
-RPC_URL = f"https://api.uniblock.dev/uni/v1/json-rpc?chainId={BASE_CHAIN_ID}"
+DEFAULT_PUBLIC_RPC = "https://mainnet.base.org"
+UNIBLOCK_RPC_URL = f"https://api.uniblock.dev/uni/v1/json-rpc?chainId={BASE_CHAIN_ID}"
+RPC_URL = os.getenv("BASE_RPC_URL") or os.getenv("RPC_URL") or UNIBLOCK_RPC_URL
 
 # Function selectors
 SEL_BALANCE_OF = "0x70a08231"        # balanceOf(address)
@@ -96,14 +100,14 @@ class UniblockRpcClient:
     ):
         self.api_keys = _parse_keys(api_key, backup_api_key)
         if not self.api_keys:
-            raise ValueError("UNIBLOCK_API_KEY is required for RPC access")
+            # Fall back to public Base RPC
+            self.api_keys = [""]
         self.current_key_index = 0
         self.rate_limit_delay = rate_limit_delay
         self.session = requests.Session()
-        self.session.headers.update({
-            "x-api-key": self.api_keys[0],
-            "content-type": "application/json",
-        })
+        if self.api_keys[0]:
+            self.session.headers.update({"x-api-key": self.api_keys[0]})
+        self.session.headers.update({"content-type": "application/json"})
         self.session.mount("https://", _build_retry_adapter())
         self._request_id = 0
         # comptroller -> [(market, underlying)] cache (shared across agents in a run)
@@ -130,16 +134,31 @@ class UniblockRpcClient:
 
     def call(self, method: str, params: list[Any]) -> Any:
         """Raw JSON-RPC call. Returns the 'result' field or raises RpcError."""
-        max_attempts = len(self.api_keys)
+        max_attempts = len(self.api_keys) if self.api_keys else 1
         last_exc: Exception | None = None
+        self._request_id += 1
+        payload = {
+            "jsonrpc": "2.0",
+            "id": self._request_id,
+            "method": method,
+            "params": params,
+        }
+
+        # If already switched to public RPC fallback, call it directly
+        if getattr(self, "_use_public_rpc", False) or not self.api_keys:
+            resp = requests.post(
+                DEFAULT_PUBLIC_RPC,
+                json=payload,
+                headers={"content-type": "application/json"},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            body = resp.json()
+            if "error" in body:
+                raise RpcError(f"{method} failed on public RPC: {body['error']}")
+            return body.get("result")
+
         for attempt in range(max_attempts):
-            self._request_id += 1
-            payload = {
-                "jsonrpc": "2.0",
-                "id": self._request_id,
-                "method": method,
-                "params": params,
-            }
             try:
                 response = self.session.post(RPC_URL, json=payload, timeout=30)
                 if response.status_code in (429, 401, 403) and attempt < max_attempts - 1:
@@ -152,14 +171,32 @@ class UniblockRpcClient:
                 if "error" in body:
                     raise RpcError(f"{method} failed: {body['error']}")
                 return body.get("result")
-            except requests.RequestException as exc:
+            except (requests.RequestException, RpcError) as exc:
                 last_exc = exc
                 status = getattr(getattr(exc, "response", None), "status_code", None)
                 if attempt < max_attempts - 1 and self._switch_to_next_key(
                     f"HTTP {status}" if status else str(exc)
                 ):
                     continue
-                raise
+                break
+
+        # Fallback to public Base RPC
+        try:
+            logger.info("Falling back to public Base RPC (%s) for %s", DEFAULT_PUBLIC_RPC, method)
+            fallback_resp = requests.post(
+                DEFAULT_PUBLIC_RPC,
+                json=payload,
+                headers={"content-type": "application/json"},
+                timeout=30,
+            )
+            fallback_resp.raise_for_status()
+            body = fallback_resp.json()
+            if "error" in body:
+                raise RpcError(f"{method} failed on public RPC: {body['error']}")
+            self._use_public_rpc = True
+            return body.get("result")
+        except Exception as fb_exc:
+            logger.debug("Public Base RPC fallback failed: %s", fb_exc)
         if last_exc:
             raise last_exc
 

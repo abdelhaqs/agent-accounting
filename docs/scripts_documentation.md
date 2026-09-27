@@ -23,11 +23,12 @@ This document serves as the comprehensive technical reference for all Python and
 | [`build_usdc_balance_data.py`](file:///c:/Users/chris/Projects/agent-accounting/build_usdc_balance_data.py) | Python | Aggregates archive snapshots for the interactive HTML chart | `python build_usdc_balance_data.py` |
 | [`test_sync.py`](file:///c:/Users/chris/Projects/agent-accounting/test_sync.py) | Python | Pytest unit test suite (12 tests) | `pytest test_sync.py` |
 | [`test_archive_flow.py`](file:///c:/Users/chris/Projects/agent-accounting/test_archive_flow.py) | Python | Smoke test for staging, moving to archive, and logging | `python test_archive_flow.py` |
+| [`run_local_sync.ps1`](file:///c:/Users/chris/Projects/agent-accounting/run_local_sync.ps1) | PowerShell | Run ETL pipeline locally with isolated local archive & logs folders | `.\run_local_sync.ps1` |
 | [`trigger_sync.ps1`](file:///c:/Users/chris/Projects/agent-accounting/trigger_sync.ps1) | PowerShell | Trigger Cloud Run job, update secrets, deploy, stream logs | `.\trigger_sync.ps1 -UpdateSecret` |
 | [`deploy-cloudbuild.ps1`](file:///c:/Users/chris/Projects/agent-accounting/deploy-cloudbuild.ps1) | PowerShell | Remote container build and deploy via Google Cloud Build | `.\deploy-cloudbuild.ps1` |
-| [`download_logs.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_logs.ps1) | PowerShell | Resumable download of sync run logs from GCS | `.\download_logs.ps1` |
-| [`download_archive.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_archive.ps1) | PowerShell | Download raw JSON archives from GCS | `.\download_archive.ps1` |
-| [`download_full_archive.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_full_archive.ps1) | PowerShell | Complete historical GCS archive synchronization | `.\download_full_archive.ps1` |
+| [`download_logs.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_logs.ps1) | PowerShell | Fast, incremental sync of sync run logs from GCS | `.\download_logs.ps1` |
+| [`download_archive.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_archive.ps1) | PowerShell | Fast, incremental sync of raw JSON archives from GCS into `archive_downloads/` | `.\download_archive.ps1` |
+| [`download_full_archive.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_full_archive.ps1) | PowerShell | Complete historical GCS archive synchronization (delegates to `download_archive.ps1`) | `.\download_full_archive.ps1` |
 | [`export_tables.ps1`](file:///c:/Users/chris/Projects/agent-accounting/export_tables.ps1) | PowerShell | Exports BigQuery tables to local CSVs in `bq_exports/` | `.\export_tables.ps1` |
 | [`deploy.ps1`](file:///c:/Users/chris/Projects/agent-accounting/deploy.ps1) | PowerShell | Local Docker build and Terraform deployment script | `.\deploy.ps1` |
 
@@ -222,7 +223,7 @@ pytest test_sync.py -v
 ---
 
 ### 4.3. `download_logs.ps1` — Sync Run Logs Downloader
-[`download_logs.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_logs.ps1) pulls sync execution text logs from `gs://agent-accounting-506719-zerion-raw-data/logs/` into `.\logs_downloads\`.
+[`download_logs.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_logs.ps1) pulls sync execution text logs from `gs://agent-accounting-506719-zerion-raw-data/logs/` incrementally into `.\logs_downloads\`. Only new log files are downloaded; existing local files are skipped automatically.
 
 #### Usage:
 ```powershell
@@ -231,12 +232,13 @@ pytest test_sync.py -v
 
 ---
 
-### 4.4. `download_full_archive.ps1` — Complete Archive Synchronization
-[`download_full_archive.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_full_archive.ps1) uses `gcloud storage rsync` to download all historical JSON balance, transfer, and protocol files from GCS into `.\archive_downloads\full_archive\`.
+### 4.4. `download_archive.ps1` — Complete Archive Synchronization
+[`download_archive.ps1`](file:///c:/Users/chris/Projects/agent-accounting/download_archive.ps1) uses `gcloud storage rsync` to download all historical JSON balance, transfer, and protocol files from GCS into canonical `.\archive_downloads\`. It runs incrementally, downloading only new snapshot files, and can optionally filter by agent. `download_full_archive.ps1` also delegates directly to this script.
 
 #### Usage:
 ```powershell
-.\download_full_archive.ps1
+.\download_archive.ps1                          # sync all agents
+.\download_archive.ps1 -Agent mamo_base_agent_1 # sync specific agent only
 ```
 
 ---
@@ -247,4 +249,30 @@ pytest test_sync.py -v
 #### Usage:
 ```powershell
 .\export_tables.ps1
+```
+
+---
+
+#### 4.6. `run_local_sync.ps1` — Local Pipeline Runner (Isolated Testing Environment)
+[`run_local_sync.ps1`](file:///c:/Users/chris/Projects/agent-accounting/run_local_sync.ps1) runs the complete ingestion, fallback, on-chain verification, and export pipeline directly on your local machine using Python. It uses completely separate folders under `local_tests/` from GCP sync runs so that local experiments never touch cloud data.
+
+By default, it targets the 3 core ZyFAI agents defined in [`local_tests/agents_local.yaml`](file:///c:/Users/chris/Projects/agent-accounting/local_tests/agents_local.yaml) (`Zyfai AB Risky Agent`, `Zyfai Yield Maxing Agent`, and `Conservative Zyfai Agent`).
+
+#### Folder Separation Matrix:
+| Purpose | Local Runs (`run_local_sync.ps1`) | GCP Runs (`trigger_sync.ps1` / downloads) |
+| :--- | :--- | :--- |
+| **JSON Snapshots Archive** | `.\local_tests\archive\` (or `.\local_tests\runs\<name>\archive`) | `.\archive_downloads\` |
+| **Execution Text Logs** | `.\local_tests\logs\` (or `.\local_tests\runs\<name>\logs`) | `.\logs_downloads\` |
+| **Staging Directory** | `.\local_tests\staging\` | `/output/` (GCS FUSE mount inside container) |
+| **Comparison Reports** | `.\local_tests\comparisons_and_value_checks\` | `.\docs\comparisons_and_value_checks\` |
+| **BigQuery Ingestion** | Skipped by default (use `-LoadBigQuery` to enable) | Loaded directly to `agent_accounting` dataset |
+
+#### Usage Examples:
+```powershell
+.\run_local_sync.ps1                     # Sync the 3 ZyFAI agents locally (saves to local_tests\archive & logs)
+.\run_local_sync.ps1 -AllAgents          # Sync all agents configured in agents.yaml
+.\run_local_sync.ps1 -TestName "run_2"   # Isolate into local_tests\runs\run_2\
+.\run_local_sync.ps1 -SkipRpc            # Faster run: API only, skip on-chain RPC balance checks
+.\run_local_sync.ps1 -LoadBigQuery       # Run local sync AND load data to BigQuery
+.\run_local_sync.ps1 -FullResync         # Clear local SQLite transfers table and re-fetch from scratch
 ```

@@ -113,7 +113,7 @@ The three ZyFAI agents form the largest capital cluster (**$62,770.55**, represe
 
 1. **Local Configuration:**
    - [`agents.yaml`](file:///c:/Users/chris/Projects/agent-accounting/agents.yaml) has been updated with the 7 agents.
-   - Backup API key `6Gqv6O12AkVHyJY4tlqAhczrcqhYG1AOPur7si4WC3M` is configured in `.env` with automated failover.
+   - Backup API key `...i4WC3M` is configured in `.env` with automated failover.
    - All 12 unit tests pass (`pytest test_sync.py`).
 
 2. **GCP Cloud Run State:**

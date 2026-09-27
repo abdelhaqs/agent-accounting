@@ -430,7 +430,7 @@ def reconcile_balances(
     agent_name: str | None,
     provider: str,
     storage: Storage,
-    zerion: ZerionClient,
+    zerion: ZerionClient | None,
     uniblock: "UniblockClient | None",
     chain_ids: list[str] | str | None,
     run_timestamp: str,
@@ -454,6 +454,8 @@ def reconcile_balances(
     chains = set(chain_filter.split(",")) if chain_filter else None
 
     def zerion_total() -> float | None:
+        if zerion is None:
+            return None
         p = zerion.get_portfolio(wallet, chain_ids=chain_ids)
         return p.get("data", {}).get("attributes", {}).get("total", {}).get("positions")
 
@@ -473,7 +475,10 @@ def reconcile_balances(
     except Exception as exc:
         logger.warning("Reconcile: same-provider total failed for %s: %s", wallet, exc)
     try:
-        cross_total = debank_total() if provider == "zerion" else zerion_total()
+        if provider == "zerion":
+            cross_total = debank_total()
+        elif zerion is not None:
+            cross_total = zerion_total()
     except Exception as exc:
         logger.warning("Reconcile: cross-provider total failed for %s: %s", wallet, exc)
 
@@ -756,11 +761,12 @@ def write_run_log(
     entries: list[dict[str, Any]],
     failed_agents: list[str],
     reconciliation: list[dict[str, Any]] | None = None,
+    primary_source: str = "uniblock",
 ) -> Path:
     """Write a run summary log to <logs_dir>/sync_log_<timestamp>.txt."""
     logs_dir.mkdir(parents=True, exist_ok=True)
 
-    lines = [f"Zerion sync run: {run_timestamp}", ""]
+    lines = [f"Accounting sync run: {run_timestamp} (Source: {primary_source.upper()})", ""]
     for e in entries:
         lines.append(f"Agent: {e['agent']} ({e['wallet']})")
         lines.append(f"  Transfers exported: {e['transfers']}")
@@ -783,10 +789,16 @@ def write_run_log(
                 onchain += f" ({r['onchain_delta_pct']:+.3f}%)"
             else:
                 onchain = "n/a"
-            lines.append(
-                f"  {r['agent_name']} [{r['provider']}]: stored=${r['computed_usd']:,.2f} "
-                f"| same-provider={same} | cross-provider={cross} | on-chain={onchain} -> {r['status']}"
-            )
+            if cross != "n/a":
+                lines.append(
+                    f"  {r['agent_name']} [{r['provider']}]: stored=${r['computed_usd']:,.2f} "
+                    f"| same-provider={same} | cross-provider={cross} | on-chain={onchain} -> {r['status']}"
+                )
+            else:
+                lines.append(
+                    f"  {r['agent_name']} [{r['provider']}]: stored=${r['computed_usd']:,.2f} "
+                    f"| same-provider={same} | on-chain={onchain} -> {r['status']}"
+                )
         lines.append("")
 
     if failed_agents:
@@ -848,20 +860,20 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="./RECV",
-        help="Staging directory for received JSON exports before archiving (default: ./RECV)",
+        default=os.getenv("OUTPUT_DIR", "./RECV"),
+        help="Staging directory for received JSON exports before archiving (default: ./RECV; env: OUTPUT_DIR)",
     )
     parser.add_argument(
         "--archive-dir",
         type=str,
-        default="./Archive",
-        help="Final destination for timestamped JSON files (default: ./Archive)",
+        default=os.getenv("ARCHIVE_DIR", "./Archive"),
+        help="Final destination for timestamped JSON files (default: ./Archive; env: ARCHIVE_DIR)",
     )
     parser.add_argument(
         "--logs-dir",
         type=str,
-        default="./logs",
-        help="Directory for per-run summary logs (default: ./logs)",
+        default=os.getenv("LOGS_DIR", "./logs"),
+        help="Directory for per-run summary logs (default: ./logs; env: LOGS_DIR)",
     )
     parser.add_argument(
         "--bq-dataset",
@@ -896,6 +908,18 @@ def main():
         help="Skip exporting JSON/raw files (only update SQLite)",
     )
     parser.add_argument(
+        "--source",
+        type=str,
+        choices=["uniblock", "zerion"],
+        default=os.getenv("DATA_SOURCE", "uniblock"),
+        help="Primary data source for balances and transactions (default: uniblock; env: DATA_SOURCE)",
+    )
+    parser.add_argument(
+        "--skip-zerion",
+        action="store_true",
+        help="Skip querying Zerion completely",
+    )
+    parser.add_argument(
         "--log-file",
         type=str,
         default="zerion_sync.log",
@@ -909,9 +933,20 @@ def main():
     if args.log_file:
         logger.info("Logging to %s", Path(args.log_file).resolve())
 
+    uniblock_key = os.getenv("UNIBLOCK_API_KEY")
+    uniblock_backup_key = os.getenv("UNIBLOCK_API_KEY_BACKUP")
     api_key = os.getenv("ZERION_API_KEY")
-    if not api_key:
+
+    if args.skip_uniblock and args.source == "uniblock":
+        args.source = "zerion"
+    elif args.skip_zerion and args.source == "zerion":
+        args.source = "uniblock"
+
+    if args.source == "zerion" and not api_key:
         logger.error("Missing ZERION_API_KEY. Check your .env file.")
+        sys.exit(1)
+    if args.source == "uniblock" and not (uniblock_key or uniblock_backup_key):
+        logger.error("Missing UNIBLOCK_API_KEY. Check your .env file.")
         sys.exit(1)
 
     agents = load_agents(args.agents_config)
@@ -922,7 +957,9 @@ def main():
         sys.exit(1)
 
     chain_ids = args.chain_ids.strip() or None
-    client = ZerionClient(api_key, rate_limit_delay=args.rate_limit_delay)
+    client = None
+    if api_key and (args.source == "zerion" or not args.skip_zerion):
+        client = ZerionClient(api_key, rate_limit_delay=args.rate_limit_delay)
     storage = Storage(args.db_path)
     output_dir = Path(args.output_dir)
     archive_dir = Path(args.archive_dir)
@@ -940,8 +977,6 @@ def main():
             logger.error("BigQuery client init failed, continuing without BQ: %s", exc)
 
     uniblock_client = None
-    uniblock_key = os.getenv("UNIBLOCK_API_KEY")
-    uniblock_backup_key = os.getenv("UNIBLOCK_API_KEY_BACKUP")
     if (uniblock_key or uniblock_backup_key) and not args.skip_uniblock:
         from uniblock_client import UniblockClient
 
@@ -951,12 +986,12 @@ def main():
             rate_limit_delay=args.rate_limit_delay,
         )
         logger.info(
-            "Uniblock/DeBank fallback enabled for Zerion-unsupported wallets (%d key(s) configured)",
+            "Uniblock/DeBank provider initialized (%d key(s) configured)",
             len(uniblock_client.api_keys),
         )
 
     rpc_client = None
-    if (uniblock_key or uniblock_backup_key) and not args.skip_rpc:
+    if not args.skip_rpc:
         from rpc_client import UniblockRpcClient
 
         rpc_client = UniblockRpcClient(
@@ -986,41 +1021,15 @@ def main():
             raw_tx_pages: list[dict[str, Any]] = []
             raw_pos_pages: list[dict[str, Any]] = []
             debank_raw: dict[str, Any] | None = None
-            provider = "zerion"
+            provider = "debank" if args.source == "uniblock" else "zerion"
 
-            try:
+            if args.source == "uniblock":
+                if uniblock_client is None:
+                    raise ValueError("Uniblock client is not configured but --source is uniblock")
                 if args.full_resync:
                     logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
                     storage.clear_transfers(wallet_lower)
-
-                logger.info("Starting transfer sync for %s (chains=%s)", wallet, chain_ids or "all")
-                sync_transfers(
-                    client,
-                    wallet,
-                    storage,
-                    agent_name=agent_name,
-                    chain_ids=chain_ids,
-                    raw_pages=raw_tx_pages if not args.no_export else None,
-                )
-
-                logger.info("Starting balance sync for %s (chains=%s)", wallet, chain_ids or "all")
-                sync_balances(
-                    client,
-                    wallet,
-                    storage,
-                    agent_name=agent_name,
-                    chain_ids=chain_ids,
-                    raw_pages=raw_pos_pages if not args.no_export else None,
-                )
-            except Exception as exc:
-                if uniblock_client is None:
-                    raise
-                logger.warning(
-                    "Zerion sync failed for '%s' (%s): %s — falling back to Uniblock/DeBank",
-                    agent_name,
-                    wallet,
-                    exc,
-                )
+                logger.info("Syncing agent '%s' (%s) via Uniblock/DeBank (primary source)", agent_name, wallet)
                 debank_raw = sync_via_debank(
                     uniblock_client,
                     wallet,
@@ -1028,7 +1037,48 @@ def main():
                     agent_name=agent_name,
                     chain_ids=chain_ids,
                 )
-                provider = "debank"
+            else:
+                try:
+                    if args.full_resync:
+                        logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
+                        storage.clear_transfers(wallet_lower)
+
+                    logger.info("Starting transfer sync for %s (chains=%s)", wallet, chain_ids or "all")
+                    sync_transfers(
+                        client,
+                        wallet,
+                        storage,
+                        agent_name=agent_name,
+                        chain_ids=chain_ids,
+                        raw_pages=raw_tx_pages if not args.no_export else None,
+                    )
+
+                    logger.info("Starting balance sync for %s (chains=%s)", wallet, chain_ids or "all")
+                    sync_balances(
+                        client,
+                        wallet,
+                        storage,
+                        agent_name=agent_name,
+                        chain_ids=chain_ids,
+                        raw_pages=raw_pos_pages if not args.no_export else None,
+                    )
+                except Exception as exc:
+                    if uniblock_client is None:
+                        raise
+                    logger.warning(
+                        "Zerion sync failed for '%s' (%s): %s — falling back to Uniblock/DeBank",
+                        agent_name,
+                        wallet,
+                        exc,
+                    )
+                    debank_raw = sync_via_debank(
+                        uniblock_client,
+                        wallet,
+                        storage,
+                        agent_name=agent_name,
+                        chain_ids=chain_ids,
+                    )
+                    provider = "debank"
 
             if bq_client is not None:
                 try:
@@ -1048,7 +1098,7 @@ def main():
                     agent_name,
                     provider,
                     storage,
-                    client,
+                    client if args.source == "zerion" else None,
                     uniblock_client,
                     chain_ids,
                     run_timestamp,
@@ -1072,21 +1122,24 @@ def main():
                     rec["onchain_unverified_usd"] = onchain["onchain_unverified_usd"]
                     rec["onchain_delta_pct"] = onchain["onchain_delta_pct"]
                     onchain_results[wallet_lower] = onchain
-                    # On-chain ground truth participates in the verdict.
+                    # On-chain ground truth cross-checks the value.
                     d = onchain["onchain_delta_pct"]
                     covered = onchain["onchain_total_usd"] + onchain["onchain_unverified_usd"]
                     if (
                         d is not None
                         and abs(d) > RECONCILE_TOLERANCE_PCT
-                        and abs(rec["computed_usd"] - covered)
-                        > RECONCILE_TOLERANCE_USD
-                        and rec["status"] == "OK"
+                        and abs(rec["computed_usd"] - covered) > RECONCILE_TOLERANCE_USD
                     ):
                         rec["status"] = "MISMATCH"
                         logger.warning(
                             "Reconcile %s: on-chain delta %+.3f%% escalates status to MISMATCH",
                             agent_name, d,
                         )
+                    elif d is not None and (
+                        abs(d) <= RECONCILE_TOLERANCE_PCT
+                        or abs(rec["computed_usd"] - covered) <= RECONCILE_TOLERANCE_USD
+                    ):
+                        rec["status"] = "OK"
                 except Exception as exc:
                     logger.error("On-chain verification failed for %s: %s", wallet, exc, exc_info=True)
 
@@ -1150,7 +1203,14 @@ def main():
             logger.error("BigQuery reconciliation load failed: %s", exc, exc_info=True)
 
     if not args.no_export:
-        write_run_log(logs_dir, run_timestamp, run_entries, failed_agents, reconciliation_records)
+        write_run_log(
+            logs_dir,
+            run_timestamp,
+            run_entries,
+            failed_agents,
+            reconciliation_records,
+            primary_source=args.source,
+        )
         for run_dir, prefix in staged:
             move_to_archive(run_dir, archive_dir, prefix)
 

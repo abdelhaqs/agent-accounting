@@ -21,9 +21,19 @@ logs_downloads/
 # Output data & downloads
 output/
 archive_downloads/
+logs_downloads/
+local_archive/
+local_logs/
+local_output/
+local_tests/
 RECV/
 Archive/
 bq_exports/
+
+# Local testing & scratch files
+fetch_zyfai_risky_portfolio.ps1
+run_local_sync.ps1
+*raw.json
 
 # IDE
 .vscode/

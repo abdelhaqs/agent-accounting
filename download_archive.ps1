@@ -1,64 +1,83 @@
-# Download archived agent data from GCS
+# Download archived agent data from GCS to local archive_downloads
+# Uses 'gcloud storage rsync' to pull ONLY new / modified snapshots (incremental & fast).
+#
 # Usage:
-#   .\download_archive.ps1                          # defaults: mamo_base_agent_1
-#   .\download_archive.ps1 -Agent zyfai_base_agent_2
-#   .\download_archive.ps1 -Agent mamo_base_agent_1 -Prefix Archive
+#   .\download_archive.ps1                              # syncs all agents (default)
+#   .\download_archive.ps1 -Agent mamo_base_agent_1     # syncs only a specific agent
+#   .\download_archive.ps1 -OutputDir .\custom_folder   # custom output directory
 
 param(
-    [string]$Agent  = "mamo_base_agent_1",
-    [string]$Bucket = "gs://agent-accounting-506719-zerion-raw-data",
-    [string]$Prefix = "Archive"
+    [string]$Agent     = "all",
+    [string]$Bucket    = "gs://agent-accounting-506719-zerion-raw-data",
+    [string]$Prefix    = "Archive",
+    [string]$OutputDir = ".\archive_downloads"
 )
 
 $ErrorActionPreference = "Stop"
 
-$pattern    = "$Bucket/$Prefix/${Agent}_*"
-$outputDir  = ".\archive_downloads\$Agent"
+$source = "$Bucket/$Prefix"
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  GCS Archive Download" -ForegroundColor Cyan
-Write-Host "  Pattern: $pattern" -ForegroundColor Cyan
+Write-Host "  GCS Archive Download (Incremental Sync)" -ForegroundColor Cyan
+Write-Host "  Source: $source" -ForegroundColor Cyan
+Write-Host "  Target: $OutputDir" -ForegroundColor Cyan
+if ($Agent -and $Agent -ne "all") {
+    Write-Host "  Filter: Agent = $Agent" -ForegroundColor Cyan
+} else {
+    Write-Host "  Filter: All Agents" -ForegroundColor Cyan
+}
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. List what will be downloaded (also verifies auth + path)
-Write-Host "[1/3] Listing remote files..." -ForegroundColor Yellow
-$remoteFiles = gcloud storage ls $pattern 2>$null
-$remoteCount = ($remoteFiles | Measure-Object).Count
-
-if ($remoteCount -eq 0) {
-    throw "No files found at $pattern. Check the agent name, prefix, and that you're authenticated (gcloud auth list)."
+# 1. Prepare local output directory
+if (-not (Test-Path $OutputDir)) {
+    New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 }
-Write-Host "  Found $remoteCount files" -ForegroundColor Green
-Write-Host ""
+$resolvedDir = Resolve-Path $OutputDir
+$beforeFiles = Get-ChildItem -Path $OutputDir -File -ErrorAction SilentlyContinue
+$beforeCount = ($beforeFiles | Measure-Object).Count
 
-# 2. Prepare local directory
-Write-Host "[2/3] Preparing output directory..." -ForegroundColor Yellow
-if (-not (Test-Path $outputDir)) {
-    New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+# 2. Run incremental rsync
+Write-Host "[1/2] Syncing new snapshots from GCS..." -ForegroundColor Yellow
+if ($Agent -and $Agent -ne "all") {
+    # Exclude objects that don't match the requested agent prefix
+    $excludeRegex = "^(?!${Agent}_).*"
+    gcloud storage rsync -r --exclude="$excludeRegex" $source $OutputDir
+} else {
+    gcloud storage rsync -r $source $OutputDir
 }
-Write-Host "  -> $(Resolve-Path $outputDir)" -ForegroundColor Green
-Write-Host ""
 
-# 3. Download
-Write-Host "[3/3] Downloading..." -ForegroundColor Yellow
-gcloud storage cp $pattern $outputDir
-if ($LASTEXITCODE -ne 0) { throw "Download failed (gcloud exit code $LASTEXITCODE)" }
+if ($LASTEXITCODE -ne 0) {
+    throw "Archive download failed (gcloud exit code $LASTEXITCODE). Check authentication (gcloud auth list)."
+}
 
-# 4. Verify
-$localFiles = Get-ChildItem $outputDir -File
+# 3. Summary & Verification
+Write-Host "[2/2] Calculating summary..." -ForegroundColor Yellow
+$localFiles = Get-ChildItem -Path $OutputDir -File
+$afterCount = ($localFiles | Measure-Object).Count
+$newCount   = [math]::Max(0, $afterCount - $beforeCount)
 $totalMB    = [math]::Round(($localFiles | Measure-Object Length -Sum).Sum / 1MB, 2)
 
 Write-Host ""
-Write-Host "Downloaded $($localFiles.Count)/$remoteCount files ($totalMB MB)" -ForegroundColor Green
-
-if ($localFiles.Count -ne $remoteCount) {
-    Write-Host "WARNING: count mismatch - expected $remoteCount, got $($localFiles.Count)" -ForegroundColor Red
+if ($newCount -gt 0) {
+    Write-Host "SUCCESS: Pulled $newCount new snapshot file(s)!" -ForegroundColor Green
+} else {
+    Write-Host "Already up to date: 0 new files downloaded." -ForegroundColor Green
 }
+Write-Host "Total archive files: $afterCount ($totalMB MB)" -ForegroundColor Cyan
+Write-Host "Archive directory:   $resolvedDir" -ForegroundColor Cyan
 
-# Group summary by file type
+# Breakdown by agent
 Write-Host ""
-Write-Host "Breakdown by type:" -ForegroundColor Cyan
-$localFiles | Group-Object { ($_.Name -replace '_\d{8}_\d{6}\.json$', '') -replace "^${Agent}_", '' } |
-    Sort-Object Name |
-    ForEach-Object { Write-Host ("  {0,-25} {1,4} files" -f $_.Name, $_.Count) }
+Write-Host "Breakdown by agent:" -ForegroundColor Cyan
+$localFiles | ForEach-Object {
+    if ($_.Name -match '^(?<agent>.+?)_(?<type>balances|transfers|raw_\w+)_\d{8}_\d{6}\.json$') {
+        [PSCustomObject]@{ Agent = $Matches.agent; Type = $Matches.type }
+    } else {
+        [PSCustomObject]@{ Agent = '(other)'; Type = $_.Name }
+    }
+} | Group-Object Agent | Sort-Object Name | ForEach-Object {
+    $agentName = $_.Name
+    $count = $_.Count
+    Write-Host ("  {0,-32} {1,5} files" -f $agentName, $count)
+}

@@ -92,12 +92,18 @@ class UniblockClient:
         return True
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
-        max_attempts = len(self.api_keys)
+        max_attempts = max(len(self.api_keys) * 3, 4)
         last_exc: Exception | None = None
         for attempt in range(max_attempts):
             try:
                 response = self.session.get(f"{BASE_URL}{path}", params=params or {}, timeout=30)
-                if response.status_code in (429, 401, 403) and attempt < max_attempts - 1:
+                if response.status_code == 429 and attempt < max_attempts - 1:
+                    sleep_time = min(1.0 * (attempt + 1), 5.0)
+                    logger.warning("Uniblock rate limit (HTTP 429) on %s. Backing off for %.1fs...", path, sleep_time)
+                    time.sleep(sleep_time)
+                    self._switch_to_next_key("HTTP 429")
+                    continue
+                elif response.status_code in (401, 403) and attempt < max_attempts - 1:
                     if self._switch_to_next_key(f"HTTP {response.status_code}"):
                         continue
                 response.raise_for_status()
@@ -107,6 +113,9 @@ class UniblockClient:
             except requests.RequestException as exc:
                 last_exc = exc
                 status = getattr(getattr(exc, "response", None), "status_code", None)
+                if status == 429 and attempt < max_attempts - 1:
+                    sleep_time = min(1.0 * (attempt + 1), 5.0)
+                    time.sleep(sleep_time)
                 if attempt < max_attempts - 1 and self._switch_to_next_key(
                     f"HTTP {status}" if status else str(exc)
                 ):

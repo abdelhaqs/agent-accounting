@@ -33,6 +33,7 @@ Individual technical guides for every Python script powering the ETL flow:
 | [**`rpc_client_architecture.md`**](rpc_client_architecture.md) | On-Chain Verification | Mermaid architecture diagram, ABI function selectors, and dual-key failover specifications for Base JSON-RPC verification. |
 | [**`pipeline_architecture_gcp.md`**](pipeline_architecture_gcp.md) | GCP Cloud Architecture | Complete cloud deployment architecture (Cloud Run, Cloud Scheduler, Cloud Build, Artifact Registry, BigQuery, GCS). |
 | [**`pipeline_architecture.md`**](pipeline_architecture.md) | Pipeline Data Flow | High-level data flow from wallet ingestion to local SQLite, staging, flat archiving, and reporting. |
+| [**`how_to_trigger_etl_on_gcp.md`**](how_to_trigger_etl_on_gcp.md) | GCP Operations & Triggering | Operational guide on triggering, monitoring, and debugging the ETL on GCP directly from PowerShell. |
 | [**`scripts_documentation.md`**](scripts_documentation.md) | Script Reference Manual | Comprehensive CLI parameters, usage instructions, and examples for all 18 Python and PowerShell scripts. |
 | [**`provider_evaluation_report.md`**](provider_evaluation_report.md) | Data Provider Audit | Evaluation of Zerion REST API vs. Uniblock Unified API coverage, latency, and reliability. |
 | [**`cost_estimate_gcp.md`**](cost_estimate_gcp.md) | Cloud Infrastructure Costs | Detailed cost breakdown of GCP Cloud Run, Cloud Storage, BigQuery, and Secret Manager across scheduled runs. |
