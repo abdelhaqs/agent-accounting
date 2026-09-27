@@ -14,7 +14,9 @@ import yaml
 from dotenv import load_dotenv
 from requests import HTTPError
 
+from rpc_client import UniblockRpcClient
 from storage import Balance, Storage, Transfer
+from uniblock_client import UniblockClient
 from zerion_client import ZerionClient
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
@@ -1080,6 +1082,20 @@ def main():
                     )
                     provider = "debank"
 
+            # Data quality contract validation
+            try:
+                from data_quality import validate_balances, validate_transfers
+                b_records = storage.get_balances(wallet_lower)
+                t_records = storage.get_transfers(wallet_lower)
+                b_report = validate_balances(b_records)
+                t_report = validate_transfers(t_records)
+                if not b_report.passed:
+                    logger.warning("Data quality warnings on balances (%s): %s", wallet, b_report.failures)
+                if not t_report.passed:
+                    logger.warning("Data quality warnings on transfers (%s): %s", wallet, t_report.failures)
+            except Exception as dq_exc:
+                logger.debug("Data quality check skipped: %s", dq_exc)
+
             if bq_client is not None:
                 try:
                     from bigquery_loader import load_balances, load_transfers
@@ -1193,6 +1209,17 @@ def main():
                 exc_info=True,
             )
             failed_agents.append(wallet)
+
+    if reconciliation_records:
+        try:
+            from data_quality import validate_reconciliation
+            r_report = validate_reconciliation(reconciliation_records)
+            if not r_report.passed:
+                logger.warning("Data quality warnings on reconciliation: %s", r_report.failures)
+            else:
+                logger.info("Data quality validation passed for all reconciliation records.")
+        except Exception as dq_exc:
+            logger.debug("Reconciliation data quality check skipped: %s", dq_exc)
 
     if bq_client is not None and reconciliation_records:
         try:
