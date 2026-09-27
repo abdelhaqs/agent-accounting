@@ -1,4 +1,4 @@
-"""Uniblock Direct API client for DeBank endpoints (fallback provider to Zerion).
+"""Uniblock Direct API client for DeBank endpoints (primary provider for Agent Accounting).
 
 Docs: https://docs.uniblock.dev/reference/resources/providers
 DeBank paths are proxied under /direct/v1/DeBank, e.g.

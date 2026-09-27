@@ -102,13 +102,13 @@
 <p><strong>Scope:</strong> ZyFAI Target Agent Trio (<code>Zyfai AB Risky Agent</code>, <code>Zyfai Yield Maxing Agent</code>, <code>Conservative Zyfai Agent</code>)</p>
 <p>---</p>
 <h2>1. Executive Summary</h2>
-<p>This run represents the first production execution where <strong>Uniblock (DeBank) was designated as the sole primary data source</strong>, completely eliminating dependencies on Zerion, and using <strong>live On-Chain JSON-RPC queries</strong> to independently verify balances.</p>
+<p>This run represents the first production execution where <strong>Uniblock (DeBank) was designated as the sole primary data source</strong>, completely eliminating legacy third-party dependencies, and using <strong>live On-Chain JSON-RPC queries</strong> to independently verify balances.</p>
 <h3>Key Highlights:</h3>
 <p>1. <strong>100% Healthy Reconciliation:</strong></p>
 <p>   - All 3 agents achieved <strong><code>OK</code></strong> reconciliation status.</p>
 <p>   - Stored balances from Uniblock matched on-chain JSON-RPC ground truth with <strong>near-zero deltas</strong> (between <strong>-0.003%</strong> and <strong>+0.000%</strong>).</p>
-<p>2. <strong>Zerion Completely Bypassed:</strong></p>
-<p>   - Zero API calls were made to Zerion (<code>--source uniblock</code>).</p>
+<p>2. <strong>Clean Ingestion Without Double-Counting:</strong></p>
+<p>   - Pure multi-agent accounting via Uniblock (<code>--source uniblock</code>).</p>
 <p>   - Stored values are free from router wrapper inflation and multi-protocol double counting.</p>
 <p>3. <strong>Resilient Rate-Limiting & RPC Failover:</strong></p>
 <p>   - Uniblock's rate limits (<code>HTTP 429</code>) were gracefully managed via dynamic exponential backoff and dual-key rotation.</p>
@@ -197,8 +197,8 @@ pie title Total Portfolio Allocation Across Target Agents ($15,047.44)
 <p>---</p>
 <h2>5. Technical Validation of the Uniblock + RPC Pipeline</h2>
 <table><thead><tr><th>Component</th><th>Previous Architecture</th><th>New Architecture (This Run)</th><th>Result</th></tr></thead><tbody>
-<tr><td>**Primary Data Source**</td><td>Zerion API (`api.zerion.io`)</td><td>**Uniblock Direct API (`api.uniblock.dev/direct/v1/DeBank`)**</td><td>Fixed router wrapper double-counting and 1.6x inflation</td></tr>
-<tr><td>**Cross-Checking Provider**</td><td>Cross-query to Zerion</td><td>**Base On-Chain JSON-RPC (`https://mainnet.base.org`)**</td><td>Ground truth directly from the Base blockchain</td></tr>
+<tr><td>**Primary Data Source**</td><td>Legacy Ingestion Engine</td><td>**Uniblock Direct API (`api.uniblock.dev/direct/v1/DeBank`)**</td><td>Fixed router wrapper double-counting and 1.6x inflation</td></tr>
+<tr><td>**Cross-Checking Provider**</td><td>Cross-query to secondary provider</td><td>**Base On-Chain JSON-RPC (`https://mainnet.base.org`)**</td><td>Ground truth directly from the Base blockchain</td></tr>
 <tr><td>**API Rate-Limiting**</td><td>Single key, would fail on HTTP 429</td><td>**Progressive backoff (1s–5s) + Dual Key Rotation**</td><td>Zero unhandled failures</td></tr>
 <tr><td>**RPC Fallback**</td><td>Uniblock JSON-RPC only</td><td>**Direct failover to Base Public RPC**</td><td>Contract checks never blocked by Uniblock quota</td></tr>
 </tbody></table>

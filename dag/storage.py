@@ -29,7 +29,7 @@ class Transfer:
     amount_float: float | None
     price: float | None
     usd_value: float | None
-    provider: str = "zerion"
+    provider: str = "debank"
 
 
 @dataclass(frozen=True)
@@ -49,11 +49,11 @@ class Balance:
     price: float | None
     usd_value: float | None
     is_receipt_token: bool
-    provider: str = "zerion"
+    provider: str = "debank"
 
 
 class Storage:
-    def __init__(self, db_path: str = "zerion.db"):
+    def __init__(self, db_path: str = "accounting.db"):
         self.db_path = db_path
         self._init_db()
 
@@ -96,7 +96,7 @@ class Storage:
                     amount_float REAL,
                     price REAL,
                     usd_value REAL,
-                    provider TEXT NOT NULL DEFAULT 'zerion',
+                    provider TEXT NOT NULL DEFAULT 'debank',
                     UNIQUE(wallet, tx_id, token_id, direction, sender, recipient, amount_raw)
                 );
 
@@ -118,7 +118,7 @@ class Storage:
                     usd_value REAL,
                     is_receipt_token INTEGER NOT NULL DEFAULT 0,
                     updated_at TEXT NOT NULL,
-                    provider TEXT NOT NULL DEFAULT 'zerion',
+                    provider TEXT NOT NULL DEFAULT 'debank',
                     -- position_type is part of the key: the same token can appear in
                     -- several distinct protocol positions (e.g. two Morpho vaults).
                     UNIQUE(wallet, chain, token_id, token_address, is_receipt_token, position_type)
@@ -131,11 +131,11 @@ class Storage:
                 conn.execute("ALTER TABLE transfers ADD COLUMN agent_name TEXT")
             if not self._column_exists(conn, "balances", "agent_name"):
                 conn.execute("ALTER TABLE balances ADD COLUMN agent_name TEXT")
-            # Migration: add provider column (zerion/debank) to existing databases.
+            # Migration: add provider column (debank) to existing databases.
             if not self._column_exists(conn, "transfers", "provider"):
-                conn.execute("ALTER TABLE transfers ADD COLUMN provider TEXT NOT NULL DEFAULT 'zerion'")
+                conn.execute("ALTER TABLE transfers ADD COLUMN provider TEXT NOT NULL DEFAULT 'debank'")
             if not self._column_exists(conn, "balances", "provider"):
-                conn.execute("ALTER TABLE balances ADD COLUMN provider TEXT NOT NULL DEFAULT 'zerion'")
+                conn.execute("ALTER TABLE balances ADD COLUMN provider TEXT NOT NULL DEFAULT 'debank'")
 
             # Create indexes after migration so agent_name is guaranteed to exist.
             conn.executescript(

@@ -19,7 +19,7 @@ locals {
 # -----------------------------------------------------------------------------
 # GCS raw-data bucket
 # -----------------------------------------------------------------------------
-resource "google_storage_bucket" "zerion_raw" {
+resource "google_storage_bucket" "raw_data" {
   name          = local.bucket_name
   location      = var.region
   force_destroy = false
@@ -30,20 +30,6 @@ resource "google_storage_bucket" "zerion_raw" {
 # -----------------------------------------------------------------------------
 # Secret Manager
 # -----------------------------------------------------------------------------
-resource "google_secret_manager_secret" "zerion_api_key" {
-  secret_id = "zerion-api-key"
-
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "zerion_api_key" {
-  secret      = google_secret_manager_secret.zerion_api_key.id
-  secret_data = var.zerion_api_key
-}
-
-# Uniblock API key (DeBank fallback provider)
 resource "google_secret_manager_secret" "uniblock_api_key" {
   secret_id = "uniblock-api-key"
 
@@ -60,38 +46,38 @@ resource "google_secret_manager_secret_version" "uniblock_api_key" {
 # -----------------------------------------------------------------------------
 # Service account for the Cloud Run Job
 # -----------------------------------------------------------------------------
-resource "google_service_account" "zerion_sync" {
-  account_id   = "zerion-sync"
-  display_name = "Zerion sync Cloud Run Job"
+resource "google_service_account" "accounting_sync" {
+  account_id   = "accounting-sync"
+  display_name = "Agent Accounting Cloud Run Job"
 }
 
-resource "google_project_iam_member" "zerion_sync_secret_accessor" {
+resource "google_project_iam_member" "accounting_sync_secret_accessor" {
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.zerion_sync.email}"
+  member  = "serviceAccount:${google_service_account.accounting_sync.email}"
 }
 
-resource "google_storage_bucket_iam_member" "zerion_sync_gcs_admin" {
-  bucket = google_storage_bucket.zerion_raw.name
+resource "google_storage_bucket_iam_member" "accounting_sync_gcs_admin" {
+  bucket = google_storage_bucket.raw_data.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.zerion_sync.email}"
+  member = "serviceAccount:${google_service_account.accounting_sync.email}"
 }
 
 # -----------------------------------------------------------------------------
 # Cloud Run Job
 # -----------------------------------------------------------------------------
-resource "google_cloud_run_v2_job" "zerion_sync" {
-  name     = "zerion-sync"
+resource "google_cloud_run_v2_job" "accounting_sync" {
+  name     = "agent-accounting-sync"
   location = var.region
 
   template {
     template {
-      service_account = google_service_account.zerion_sync.email
+      service_account = google_service_account.accounting_sync.email
 
       volumes {
-        name = "zerion-output"
+        name = "accounting-output"
         gcs {
-          bucket    = google_storage_bucket.zerion_raw.name
+          bucket    = google_storage_bucket.raw_data.name
           read_only = false
         }
       }
@@ -100,10 +86,10 @@ resource "google_cloud_run_v2_job" "zerion_sync" {
         image = var.sync_image
 
         env {
-          name = "ZERION_API_KEY"
+          name = "UNIBLOCK_API_KEY"
           value_source {
             secret_key_ref {
-              secret  = google_secret_manager_secret.zerion_api_key.secret_id
+              secret  = google_secret_manager_secret.uniblock_api_key.secret_id
               version = "latest"
             }
           }
@@ -114,7 +100,7 @@ resource "google_cloud_run_v2_job" "zerion_sync" {
         }
         env {
           name  = "AGENTS_CONFIG"
-          value = "/app/agents.yaml"
+          value = "/app/config/agents.yaml"
         }
         env {
           name  = "OUTPUT_DIR"
@@ -124,18 +110,9 @@ resource "google_cloud_run_v2_job" "zerion_sync" {
           name  = "BQ_DATASET"
           value = google_bigquery_dataset.agent_accounting.dataset_id
         }
-        env {
-          name = "UNIBLOCK_API_KEY"
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.uniblock_api_key.secret_id
-              version = "latest"
-            }
-          }
-        }
 
         volume_mounts {
-          name       = "zerion-output"
+          name       = "accounting-output"
           mount_path = "/output"
         }
 
@@ -150,12 +127,11 @@ resource "google_cloud_run_v2_job" "zerion_sync" {
   }
 
   depends_on = [
-    google_secret_manager_secret_version.zerion_api_key,
     google_secret_manager_secret_version.uniblock_api_key,
-    google_project_iam_member.zerion_sync_secret_accessor,
-    google_storage_bucket_iam_member.zerion_sync_gcs_admin,
-    google_bigquery_dataset_iam_member.zerion_sync_bq_editor,
-    google_project_iam_member.zerion_sync_bq_job_user,
+    google_project_iam_member.accounting_sync_secret_accessor,
+    google_storage_bucket_iam_member.accounting_sync_gcs_admin,
+    google_bigquery_dataset_iam_member.accounting_sync_bq_editor,
+    google_project_iam_member.accounting_sync_bq_job_user,
   ]
 }
 
@@ -164,7 +140,7 @@ resource "google_cloud_run_v2_job" "zerion_sync" {
 # -----------------------------------------------------------------------------
 resource "google_bigquery_dataset" "agent_accounting" {
   dataset_id  = "agent_accounting"
-  description = "Agent accounting data synced from Zerion"
+  description = "Agent accounting data warehouse"
   location    = var.region
 }
 
@@ -270,14 +246,14 @@ resource "google_bigquery_table" "balance_reconciliation" {
   ])
 }
 
-resource "google_bigquery_dataset_iam_member" "zerion_sync_bq_editor" {
+resource "google_bigquery_dataset_iam_member" "accounting_sync_bq_editor" {
   dataset_id = google_bigquery_dataset.agent_accounting.dataset_id
   role       = "roles/bigquery.dataEditor"
-  member     = "serviceAccount:${google_service_account.zerion_sync.email}"
+  member     = "serviceAccount:${google_service_account.accounting_sync.email}"
 }
 
-resource "google_project_iam_member" "zerion_sync_bq_job_user" {
+resource "google_project_iam_member" "accounting_sync_bq_job_user" {
   project = var.project_id
   role    = "roles/bigquery.jobUser"
-  member  = "serviceAccount:${google_service_account.zerion_sync.email}"
+  member  = "serviceAccount:${google_service_account.accounting_sync.email}"
 }

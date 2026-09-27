@@ -1,23 +1,28 @@
-# Zerion Wallet Tracker
+# Agent Accounting
 
-Sync ERC-20 transfer history and current token balances (including vault share tokens) for one or many wallets/agents using the [Zerion API](https://developers.zerion.io/).
+Sync ERC-20 transfer history and token balances (including vault share and LP positions) for on-chain AI agents across EVM networks using the Uniblock / DeBank APIs with independent on-chain JSON-RPC verification.
 
 ## What it does
 
-1. Pulls every transaction for each configured wallet/agent via `GET /v1/wallets/{wallet}/transactions`.
-2. Extracts each ERC-20 transfer, recording direction (`in`/`out`), token, amount, USD value, sender, recipient, chain, and timestamp.
-3. Pulls current positions via `GET /v1/wallets/{wallet}/positions?filter[positions]=no_filter` so vault share / LP / receipt tokens are included.
-4. Stores everything in a local SQLite database (`zerion.db`), tagged by wallet and agent name.
+1. Ingests all token balances, protocol positions, and transfer histories for configured AI agents using Uniblock / DeBank.
+2. Cross-checks balances against direct on-chain JSON-RPC node responses on Base (`https://mainnet.base.org`).
+3. Validates records through strict data quality contracts (schema conformism, positive balance invariants).
+4. Stores data in a local SQLite database (`accounting.db`), tagged by wallet and agent name.
+5. Stages and archives timestamped snapshot artifacts in `./output/` and `./Archive/`.
+6. Loads verified records into Google BigQuery (`agent_accounting` dataset: `transfers`, `balances`, and `balance_reconciliation` tables).
+7. Generates human-readable Markdown value check reports and interactive HTML audit dashboards in `docs/report/`.
 
 ## Project Layout
 
 ```text
 agent-accounting/
 ├── config/              # Configuration files (agents.yaml, .env.example)
-├── dag/                 # Pipeline & ETL scripts (main.py, clients, loader, quality)
+├── dag/                 # Pipeline & ETL scripts (main.py, clients, storage, quality, reporter)
 ├── docs/                # Architecture docs, deployment guides, audit reports
+│   └── report/          # Automated value check reports & HTML audit dashboards
 ├── tests/               # Unit tests & data quality contracts
-├── terraform/           # GCP Infrastructure as Code
+├── terraform/           # GCP Infrastructure as Code (Cloud Run, GCS, BigQuery, Workflows)
+│   └── minimal/         # Minimal GCP deployment (Cloud Run Job + GCS + BigQuery)
 ├── Dockerfile           # Production container definition
 ├── Makefile             # CLI automation for Linux/macOS
 ├── task.ps1             # CLI automation for Windows PowerShell
@@ -34,16 +39,26 @@ cp config/.env.example .env
 
 ## Configuring agents (wallets)
 
-The pipeline reads wallets from `config/agents.yaml` by default. Each wallet is treated as an "agent" and gets its own raw + processed data.
+The pipeline reads wallets from `config/agents.yaml` by default:
 
-## Run
+```yaml
+agents:
+  - name: "ZyFAI Base Agent 2"
+    address: "0x42b9df65b219b3dd36ff330a4dd8f327a6ada990"
+  - name: "YieldSeeker Base Agent 2"
+    address: "0xc88bb4a2d39aa4ba3d5267b2d5a3ec78e47be9f7"
+  - name: "Mamo Base Agent 2"
+    address: "0xec23ecb0ec719c8f0f04620f4c58cf3ea671e6bc"
+```
+
+## Running the Pipeline
 
 Using the task runner:
 ```powershell
 # Windows
-.\task.ps1 test
+.\task.ps1 run
 # Linux/macOS
-make test
+make run
 ```
 
 Or running the pipeline directly:
@@ -51,47 +66,28 @@ Or running the pipeline directly:
 python dag/main.py
 ```
 
-This syncs all agents and exports both processed and raw JSON into per-agent folders under `./output/`.
-
-### Output layout
-
-```text
-output/
-├── yieldseeker_base_agent_2/
-│   ├── 20260829_190255/
-│   │   ├── transfers.json
-│   │   ├── balances.json
-│   │   ├── raw_transactions_20260829_190255.json
-│   │   └── raw_positions_20260829_190255.json
-│   └── 20260829_193044/
-│       └── ...
-└── zyfai_base_agent_2/
-    └── ...
-```
-
 ### Optional flags
 
 ```bash
-python main.py --db-path mydata.db --full-resync --rate-limit-delay 0.5 --chain-ids base --output-dir ./data
+python dag/main.py --db-path accounting.db --full-resync --rate-limit-delay 0.5 --chain-ids base --output-dir ./output
 ```
 
-- `--db-path`: SQLite database file (default `zerion.db`).
+- `--db-path`: SQLite database file (default `accounting.db`).
 - `--full-resync`: Drop existing transfer data and re-fetch from the beginning.
-- `--rate-limit-delay`: Seconds to sleep between paginated API requests. Increase this if you hit 429s on the free plan (default `0.25`).
-- `--chain-ids`: Comma-separated chain ids to sync, e.g. `base` or `base,ethereum` (default: `base`; env: `CHAIN_IDS`; set empty for all chains).
-- `--agents-config`: Path to the agents YAML config (default `agents.yaml`; env `AGENTS_CONFIG`).
-- `--output-dir`: Directory for per-agent exports (default `./output`).
-- `--no-export`: Skip exporting JSON files (only update SQLite).
-- `--log-file`: Log file path (default `zerion_sync.log`; set to empty string to disable file logging).
-
-## Error handling
-
-If Zerion returns an error for a specific agent (e.g., "Unsupported address"), the script logs the error, skips that agent, and continues with the rest. A summary of failed agents is printed at the end.
+- `--rate-limit-delay`: Seconds to sleep between paginated API requests (default `0.25`).
+- `--chain-ids`: Comma-separated chain ids to sync (default: `base`; env: `CHAIN_IDS`).
+- `--agents-config`: Path to the agents YAML config (default `config/agents.yaml`; env `AGENTS_CONFIG`).
+- `--output-dir`: Directory for per-agent exports (default `./RECV`).
+- `--archive-dir`: Final destination for timestamped JSON files (default `./Archive`).
+- `--report-dir`: Directory for value check reports (default `docs/report`).
+- `--no-export`: Skip exporting JSON files (only update SQLite and BigQuery).
+- `--skip-bq`: Skip loading data into Google BigQuery.
+- `--log-file`: Log file path (default `accounting_sync.log`).
 
 ## Database tables
 
-- `transfers` — one row per ERC-20 transfer, includes `wallet` and `agent_name`.
-- `balances` — current balance per token per agent, includes `wallet` and `agent_name`.
+- `transfers` — one row per ERC-20 transfer, includes `wallet`, `agent_name`, and `provider`.
+- `balances` — current balance per token per agent, includes `wallet`, `agent_name`, and `provider`.
 
 ## Query examples
 
@@ -110,87 +106,41 @@ ORDER BY usd_value DESC;
 SELECT * FROM balances WHERE is_receipt_token = 1;
 ```
 
-## Tests
+## Running Tests
 
 ```bash
-python -m unittest test_sync -v
+pytest tests/ -v
 ```
 
-## Deploy to GCP (minimal: API → Cloud Storage)
+## Deploy to GCP (Cloud Run + GCS + BigQuery)
 
-The fastest way to run this in GCP is to deploy the sync script as a **Cloud Run Job** and mount a **Cloud Storage** bucket at `/output`. No code changes are needed — the script writes the same JSON files it writes locally, but they land directly in GCS.
+Deploy using Cloud Build and Terraform:
 
-See the full minimal deployment guide in [`terraform/minimal/`](terraform/minimal/). Quick summary:
+```powershell
+# Deploy container and infrastructure
+.\dag\deploy-cloudbuild.ps1
+
+# Trigger the Cloud Run Job
+.\dag\trigger_sync.ps1
+```
+
+Or using standard Terraform:
 
 ```bash
-# 1. Build and push the container image
-export PROJECT_ID=your-gcp-project
-export REGION=us-central1
-export REPO=zerion
-
-gcloud artifacts repositories create $REPO --repository-format=docker --location=$REGION || true
-gcloud auth configure-docker $REGION-docker.pkg.dev
-
-docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/$REPO/zerion-sync:latest .
-docker push $REGION-docker.pkg.dev/$PROJECT_ID/$REPO/zerion-sync:latest
-
-# 2. Deploy the bucket, secret, service account, and Cloud Run Job
 cd terraform/minimal
 cp terraform.tfvars.example terraform.tfvars
-# edit terraform.tfvars
+# edit terraform.tfvars with your project_id, sync_image, and uniblock_api_key
+
 terraform init
 terraform apply
 
-# 3. Run it once manually
-gcloud run jobs execute zerion-sync --region=$REGION --project=$PROJECT_ID
-
-# 4. List the output in GCS
-gcloud storage ls gs://$PROJECT_ID-zerion-raw-data/
+# Run the job manually
+gcloud run jobs execute agent-accounting-sync --region=us-central1
 ```
-
-Once this is working, add Cloud Scheduler + Cloud Workflows (see [`terraform/`](../terraform)) to run it automatically, then layer on BigQuery and dbt later.
 
 ## Documentation & Architecture
 
-Complete technical specifications, runbooks, and architectures are located in [`docs/`](docs/README.md):
-
-### Python ETL Pipeline Scripts (`docs/etl/`)
-- **[`main.py`](docs/etl/main.md):** Pipeline orchestrator, multi-agent loop, staging, and archiving.
-- **[`zerion_client.py`](docs/etl/zerion_client.md):** Primary Zerion REST API client (portfolio, positions, transfers).
-- **[`uniblock_client.py`](docs/etl/uniblock_client.md):** Uniblock Unified API client with automated dual-key failover.
-- **[`rpc_client.py`](docs/etl/rpc_client.md):** Base JSON-RPC node client for independent contract ground-truth checks.
-- **[`storage.py`](docs/etl/storage.md):** Local SQLite engine (`zerion.db`) schemas and upsert operations for offline testing.
-- **[`bigquery_loader.py`](docs/etl/bigquery_loader.md):** Google BigQuery streaming/batch ingestion schemas and tables.
-
-### Architecture & Operations Guides
-- **[Documentation Index](docs/README.md):** Master catalog of all documentation.
-- **[Core Production Architecture](docs/core_pipeline_and_storage.md):** High-level 3-stage production architecture (Extract, Verify, Archive & Load).
-- **[Local Testing & Development Guide](docs/local_testing_and_development.md):** Guide for offline development, local SQLite (`zerion.db`), diagnostic tools, and unit testing.
-- **[RPC Client Architecture & Flow](docs/rpc_client_architecture.md):** Base JSON-RPC verification architecture, ABI method selectors, and failover diagram.
-- **[Scripts Documentation Manual](docs/scripts_documentation.md):** Reference guide for all 18 Python and PowerShell operational scripts.
-- **[GCP Production Cost Audit](docs/cost_estimate_gcp.md):** Real-world cost breakdown based on 30 days of production telemetry ($0.00 – $0.15/mo).
-- **[Data Provider Evaluation](docs/provider_evaluation_report.md):** Zerion REST API vs. Uniblock Unified API coverage, latency, and reliability.
-- **[Portfolio Comparisons & Value Checks](docs/comparisons_and_value_checks/README.md):** Historical balance mismatch reports, reconciliation audits, and multi-agent comparisons.
-- **[GCP Enterprise Architecture](docs/pipeline_architecture_gcp.md):** Full Cloud Run, Cloud Scheduler, Cloud Build, Artifact Registry, BigQuery, and GCS architecture ([Diagram](docs/pipeline_diagram_gcp.png)).
-- **[AWS / Supabase Architecture](docs/pipeline_architecture.md):** Alternative staging architecture ([Diagram](docs/pipeline_diagram.png)).
-- **[GCP Terraform IaC](terraform/):** Infrastructure-as-Code definitions ([Minimal IaC](terraform/minimal/)).
-
-## Knowledge Base
-
-### Zerion returns "Unsupported address" for some agents
-
-If the script logs `HTTPError: 400 Client Error: Bad Request` with an "Unsupported address" message for an agent, it means Zerion does not index or track that address through its `/wallets/...` endpoints.
-
-Common causes:
-
-1. **The address is a smart contract, not an EOA** — Vault, pool, or agent-contract addresses are often rejected by Zerion's wallet endpoints even if they hold tokens.
-2. **Zerion hasn't indexed the address yet** — Low-activity or newly deployed addresses may not be in Zerion's index.
-3. **Wrong address copied** — Always verify the address on a block explorer.
-
-How to investigate:
-
-- Check the address on [Basescan](https://basescan.org) to see if it is a contract or an EOA.
-- Try the address in the Zerion web/mobile app. If Zerion can't display it there, the API won't work either.
-- For contract addresses that Zerion doesn't support, you typically need to read events directly from an RPC node rather than using Zerion's wallet API.
-
-The script handles this gracefully: it logs the failure, skips the unsupported agent, and continues with the rest. Failed agents are summarized at the end of the run.
+- **[GCP Pipeline Architecture](docs/pipeline_architecture_gcp.md):** Full Cloud Run, Cloud Scheduler, Cloud Workflows, BigQuery, and GCS pipeline specifications.
+- **[How to Trigger ETL on GCP](docs/how_to_trigger_etl_on_gcp.md):** Step-by-step operational guide for triggering, monitoring, and debugging Cloud Run sync runs.
+- **[Audit Reports & Dashboards](docs/report/README.md):** Automated Markdown value checks and interactive HTML portfolio dashboards.
+- **[Terraform IaC](terraform/README.md):** Infrastructure-as-Code definitions.

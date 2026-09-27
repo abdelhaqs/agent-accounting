@@ -1,16 +1,16 @@
-# Trigger Zerion Sync Flow on Google Cloud Platform
+# Trigger Agent Accounting Sync Flow on Google Cloud Platform
 # Run this from the project root: C:\Users\chris\Projects\agent-accounting
 #
 # Examples:
-#   .\trigger_sync.ps1                        # Trigger and wait for completion, then show log
-#   .\trigger_sync.ps1 -ShowLogs              # Show detailed Cloud Run execution logs
-#   .\trigger_sync.ps1 -UpdateSecret          # Update GCP Secret Manager with current .env key first
-#   .\trigger_sync.ps1 -DeployCode            # Rebuild image via Cloud Build first, then run job
+#   .\dag\trigger_sync.ps1                        # Trigger and wait for completion, then show log
+#   .\dag\trigger_sync.ps1 -ShowLogs              # Show detailed Cloud Run execution logs
+#   .\dag\trigger_sync.ps1 -UpdateSecret          # Update GCP Secret Manager with current .env key first
+#   .\dag\trigger_sync.ps1 -DeployCode            # Rebuild image via Cloud Build first, then run job
 
 param(
     [string]$ProjectId    = "agent-accounting-506719",
     [string]$Region       = "us-central1",
-    [string]$JobName      = "zerion-sync",
+    [string]$JobName      = "agent-accounting-sync",
     [switch]$NoWait       = $false,
     [switch]$ShowLogs     = $true,
     [switch]$UpdateSecret = $false,
@@ -67,8 +67,8 @@ if ($UpdateSecret) {
 # 3. Optionally rebuild container image via Cloud Build
 if ($DeployCode) {
     Write-Host "[Optional] Rebuilding container image with Cloud Build..." -ForegroundColor Yellow
-    $REPO = "zerion"
-    $IMAGE = "$Region-docker.pkg.dev/$ProjectId/$REPO/zerion-sync:latest"
+    $REPO = "agent-accounting"
+    $IMAGE = "$Region-docker.pkg.dev/$ProjectId/$REPO/agent-accounting-sync:latest"
     gcloud builds submit --tag $IMAGE . --project=$ProjectId
     if ($LASTEXITCODE -ne 0) { throw "Cloud Build failed." }
     Write-Host "  Build complete." -ForegroundColor Green
@@ -109,6 +109,4 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Helpful commands to monitor progress:" -ForegroundColor Yellow
 Write-Host "  View executions list:" -ForegroundColor White
 Write-Host "    gcloud run jobs executions list --job=$JobName --region=$Region --project=$ProjectId" -ForegroundColor Gray
-Write-Host "  Download latest sync logs:" -ForegroundColor White
-Write-Host "    .\download_logs.ps1" -ForegroundColor Gray
 Write-Host "========================================" -ForegroundColor Cyan

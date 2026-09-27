@@ -1,4 +1,4 @@
-"""Sync ERC-20 transfers and balances from Zerion to SQLite for one or many wallets/agents."""
+"""Sync ERC-20 transfers and balances for on-chain AI agents to SQLite / BigQuery."""
 from __future__ import annotations
 
 import argparse
@@ -25,7 +25,6 @@ if str(_root_dir) not in sys.path:
 from rpc_client import UniblockRpcClient
 from storage import Balance, Storage, Transfer
 from uniblock_client import UniblockClient
-from zerion_client import ZerionClient
 
 # Load environment from root and config folders
 load_dotenv()
@@ -59,7 +58,7 @@ logger = setup_logging()
 def parse_iso(value: str | None) -> datetime | None:
     if not value:
         return None
-    # Zerion returns ISO 8601 with timezone offset, e.g. 2022-08-15T11:26:31+00:00
+    # Parse ISO 8601 with timezone offset, e.g. 2022-08-15T11:26:31+00:00
     try:
         return datetime.fromisoformat(value)
     except ValueError:
@@ -92,7 +91,7 @@ def extract_fungible_details(
 
 
 def extract_quantity(qty: dict[str, Any]) -> dict[str, Any]:
-    """Normalise Zerion's quantity object to raw/float/decimals."""
+    """Normalise quantity object to raw/float/decimals."""
     raw = qty.get("int") if "int" in qty else qty.get("string")
     return {
         "amount_raw": raw,
@@ -144,7 +143,7 @@ def build_transfer(
     transfer: dict[str, Any],
     direction: str,
 ) -> Transfer | None:
-    """Build a Transfer record from a Zerion transaction transfer object."""
+    """Build a Transfer record from a transaction transfer object."""
     fungible = transfer.get("fungible_info")
     if not fungible:
         # Skip non-fungible transfers (NFTs).
@@ -159,7 +158,7 @@ def build_transfer(
     if mined_at is None:
         mined_at = datetime.now(timezone.utc)
 
-    # Zerion docs use sender/recipient; the community SDK uses from/to.
+    # Transaction transfers use sender/recipient or from/to.
     sender = transfer.get("sender") or transfer.get("from") or ""
     recipient = transfer.get("recipient") or transfer.get("to") or ""
 
@@ -182,7 +181,7 @@ def build_transfer(
 
 
 def sync_transfers(
-    client: ZerionClient,
+    client: Any,
     wallet: str,
     storage: Storage,
     agent_name: str | None = None,
@@ -251,7 +250,7 @@ def build_balance(
 
 
 def sync_balances(
-    client: ZerionClient,
+    client: Any,
     wallet: str,
     storage: Storage,
     agent_name: str | None = None,
@@ -356,10 +355,9 @@ def sync_via_debank(
     agent_name: str | None = None,
     chain_ids: list[str] | str | None = None,
 ) -> dict[str, Any]:
-    """Fallback sync via Uniblock/DeBank for wallets Zerion doesn't index.
+    """Sync wallet tokens, DeFi protocol positions, and transaction history via Uniblock/DeBank.
 
-    Fetches wallet tokens, DeFi protocol positions, and transaction history,
-    then persists them with provider='debank'. Returns raw responses for archiving.
+    Persists them with provider='debank'. Returns raw responses for archiving.
     """
     wallet_lower = wallet.lower()
     chain_filter = (
@@ -368,11 +366,11 @@ def sync_via_debank(
     )
     chains = set(chain_filter.split(",")) if chain_filter else None
 
-    logger.info("DeBank fallback: fetching token list for %s", wallet)
+    logger.info("Ingestion: fetching token list for %s", wallet)
     token_list = uniblock.get_all_token_list(wallet)
-    logger.info("DeBank fallback: fetching protocol positions for %s", wallet)
+    logger.info("Ingestion: fetching protocol positions for %s", wallet)
     protocols = uniblock.get_complex_protocol_list(wallet, chain_ids=chain_filter)
-    logger.info("DeBank fallback: fetching history for %s", wallet)
+    logger.info("Ingestion: fetching history for %s", wallet)
     history = uniblock.get_all_history_list(wallet, chain_ids=chain_filter)
 
     balances: list[Balance] = []
@@ -416,7 +414,7 @@ def sync_via_debank(
     balances = unique_balances
 
     storage.replace_balances(wallet_lower, balances)
-    logger.info("DeBank fallback: stored %d balances for %s", len(balances), wallet)
+    logger.info("Stored %d balances for %s", len(balances), wallet)
 
     transfers: list[Transfer] = []
     token_dict = history.get("token_dict", {})
@@ -444,7 +442,7 @@ def sync_via_debank(
                 transfers.append(tr)
 
     storage.save_transfers(transfers)
-    logger.info("DeBank fallback: stored %d transfers for %s", len(transfers), wallet)
+    logger.info("Stored %d transfers for %s", len(transfers), wallet)
 
     return {"tokens": token_list, "protocols": protocols, "history": history}
 
@@ -458,20 +456,16 @@ def reconcile_balances(
     agent_name: str | None,
     provider: str,
     storage: Storage,
-    zerion: ZerionClient | None,
     uniblock: "UniblockClient | None",
     chain_ids: list[str] | str | None,
     run_timestamp: str,
+    cross_client: Any = None,
 ) -> dict[str, Any]:
     """Cross-check stored balances against provider aggregate endpoints.
 
-    Three numbers per agent:
-    - computed: SUM(usd_value) of the rows we stored
-    - same-provider aggregate: Zerion /portfolio or DeBank /total_balance
-      (note: Zerion /portfolio is known to miss deposited positions for some
-      wallets, so it is recorded for information but never decides the status)
-    - cross-provider aggregate: the other provider's total (the real check)
-
+    Compares:
+    - computed: SUM(usd_value) of the rows stored in SQLite
+    - provider aggregate: DeBank /total_balance
     Status is MISMATCH when the deciding delta exceeds 1% and $1.
     """
     computed = sum(b["usd_value"] or 0 for b in storage.get_balances(wallet))
@@ -480,12 +474,6 @@ def reconcile_balances(
         else ",".join(chain_ids) if chain_ids else None
     )
     chains = set(chain_filter.split(",")) if chain_filter else None
-
-    def zerion_total() -> float | None:
-        if zerion is None:
-            return None
-        p = zerion.get_portfolio(wallet, chain_ids=chain_ids)
-        return p.get("data", {}).get("attributes", {}).get("total", {}).get("positions")
 
     def debank_total() -> float | None:
         if uniblock is None:
@@ -497,18 +485,10 @@ def reconcile_balances(
         return tb.get("total_usd_value")
 
     same_provider_total: float | None = None
-    cross_total: float | None = None
     try:
-        same_provider_total = zerion_total() if provider == "zerion" else debank_total()
+        same_provider_total = debank_total()
     except Exception as exc:
-        logger.warning("Reconcile: same-provider total failed for %s: %s", wallet, exc)
-    try:
-        if provider == "zerion":
-            cross_total = debank_total()
-        elif zerion is not None:
-            cross_total = zerion_total()
-    except Exception as exc:
-        logger.warning("Reconcile: cross-provider total failed for %s: %s", wallet, exc)
+        logger.warning("Reconcile: provider total failed for %s: %s", wallet, exc)
 
     def delta_pct(ref: float | None) -> float | None:
         if ref is None:
@@ -517,17 +497,12 @@ def reconcile_balances(
             return 0.0 if abs(computed) < 1e-9 else 100.0
         return round((computed - ref) / ref * 100, 3)
 
-    # For zerion agents the /portfolio endpoint is unreliable (misses deposits),
-    # so the cross-provider delta decides; for debank agents the same-provider
-    # delta decides (it catches mapping bugs like dropped positions).
-    deciding_delta = delta_pct(cross_total) if provider == "zerion" else delta_pct(same_provider_total)
-    if deciding_delta is None:
-        deciding_delta = delta_pct(same_provider_total) or delta_pct(cross_total)
+    deciding_delta = delta_pct(same_provider_total)
 
     if deciding_delta is None:
         status = "SKIP"
     else:
-        ref = cross_total if provider == "zerion" else same_provider_total
+        ref = same_provider_total
         within = abs(deciding_delta) <= RECONCILE_TOLERANCE_PCT or (
             ref is not None and abs(computed - ref) <= RECONCILE_TOLERANCE_USD
         )
@@ -540,19 +515,18 @@ def reconcile_balances(
         "provider": provider,
         "computed_usd": round(computed, 4),
         "same_provider_total_usd": round(same_provider_total, 4) if same_provider_total is not None else None,
-        "cross_provider_total_usd": round(cross_total, 4) if cross_total is not None else None,
-        "same_provider_delta_pct": delta_pct(same_provider_total),
-        "cross_provider_delta_pct": delta_pct(cross_total),
+        "cross_provider_total_usd": None,
+        "same_provider_delta_pct": deciding_delta,
+        "cross_provider_delta_pct": None,
         "status": status,
     }
     log_fn = logger.info if status == "OK" else logger.warning
     log_fn(
-        "Reconcile %s (%s): stored=$%.2f | same-provider=$%s | cross-provider=$%s -> %s",
+        "Reconcile %s (%s): stored=$%.2f | provider=$%s -> %s",
         agent_name,
         provider,
         computed,
         f"{same_provider_total:,.2f}" if same_provider_total is not None else "n/a",
-        f"{cross_total:,.2f}" if cross_total is not None else "n/a",
         status,
     )
     return record
@@ -864,8 +838,10 @@ def move_to_archive(run_dir: Path, archive_dir: Path, prefix: str) -> None:
 
 def main():
     load_dotenv()
-    parser = argparse.ArgumentParser(description="Sync Zerion wallet data to SQLite")
-    parser.add_argument("--db-path", default="zerion.db", help="SQLite database path")
+    parser = argparse.ArgumentParser(
+        description="Agent Accounting: Multi-agent wallet ingestion and on-chain reconciliation"
+    )
+    parser.add_argument("--db-path", default="accounting.db", help="SQLite database path (default: accounting.db)")
     parser.add_argument("--full-resync", action="store_true", help="Clear transfers and re-fetch from scratch")
     parser.add_argument(
         "--rate-limit-delay",
@@ -938,7 +914,7 @@ def main():
     parser.add_argument(
         "--skip-uniblock",
         action="store_true",
-        help="Disable the Uniblock/DeBank fallback for Zerion-unsupported wallets",
+        help="Disable Uniblock/DeBank API requests",
     )
     parser.add_argument(
         "--skip-rpc",
@@ -953,20 +929,15 @@ def main():
     parser.add_argument(
         "--source",
         type=str,
-        choices=["uniblock", "zerion"],
+        choices=["uniblock"],
         default=os.getenv("DATA_SOURCE", "uniblock"),
         help="Primary data source for balances and transactions (default: uniblock; env: DATA_SOURCE)",
     )
     parser.add_argument(
-        "--skip-zerion",
-        action="store_true",
-        help="Skip querying Zerion completely",
-    )
-    parser.add_argument(
         "--log-file",
         type=str,
-        default="zerion_sync.log",
-        help="Log file path (default: zerion_sync.log; set to empty to disable file logging)",
+        default="accounting_sync.log",
+        help="Log file path (default: accounting_sync.log; set to empty to disable file logging)",
     )
     args = parser.parse_args()
 
@@ -978,17 +949,8 @@ def main():
 
     uniblock_key = os.getenv("UNIBLOCK_API_KEY")
     uniblock_backup_key = os.getenv("UNIBLOCK_API_KEY_BACKUP")
-    api_key = os.getenv("ZERION_API_KEY")
 
-    if args.skip_uniblock and args.source == "uniblock":
-        args.source = "zerion"
-    elif args.skip_zerion and args.source == "zerion":
-        args.source = "uniblock"
-
-    if args.source == "zerion" and not api_key:
-        logger.error("Missing ZERION_API_KEY. Check your .env file.")
-        sys.exit(1)
-    if args.source == "uniblock" and not (uniblock_key or uniblock_backup_key):
+    if not args.skip_uniblock and not (uniblock_key or uniblock_backup_key):
         logger.error("Missing UNIBLOCK_API_KEY. Check your .env file.")
         sys.exit(1)
 
@@ -1000,9 +962,6 @@ def main():
         sys.exit(1)
 
     chain_ids = args.chain_ids.strip() or None
-    client = None
-    if api_key and (args.source == "zerion" or not args.skip_zerion):
-        client = ZerionClient(api_key, rate_limit_delay=args.rate_limit_delay)
     storage = Storage(args.db_path)
     output_dir = Path(args.output_dir)
     archive_dir = Path(args.archive_dir)
@@ -1046,7 +1005,6 @@ def main():
             len(rpc_client.api_keys),
         )
 
-
     failed_agents: list[str] = []
     run_entries: list[dict[str, Any]] = []
     reconciliation_records: list[dict[str, Any]] = []
@@ -1064,64 +1022,21 @@ def main():
             raw_tx_pages: list[dict[str, Any]] = []
             raw_pos_pages: list[dict[str, Any]] = []
             debank_raw: dict[str, Any] | None = None
-            provider = "debank" if args.source == "uniblock" else "zerion"
+            provider = "debank"
 
-            if args.source == "uniblock":
-                if uniblock_client is None:
-                    raise ValueError("Uniblock client is not configured but --source is uniblock")
-                if args.full_resync:
-                    logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
-                    storage.clear_transfers(wallet_lower)
-                logger.info("Syncing agent '%s' (%s) via Uniblock/DeBank (primary source)", agent_name, wallet)
-                debank_raw = sync_via_debank(
-                    uniblock_client,
-                    wallet,
-                    storage,
-                    agent_name=agent_name,
-                    chain_ids=chain_ids,
-                )
-            else:
-                try:
-                    if args.full_resync:
-                        logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
-                        storage.clear_transfers(wallet_lower)
-
-                    logger.info("Starting transfer sync for %s (chains=%s)", wallet, chain_ids or "all")
-                    sync_transfers(
-                        client,
-                        wallet,
-                        storage,
-                        agent_name=agent_name,
-                        chain_ids=chain_ids,
-                        raw_pages=raw_tx_pages if not args.no_export else None,
-                    )
-
-                    logger.info("Starting balance sync for %s (chains=%s)", wallet, chain_ids or "all")
-                    sync_balances(
-                        client,
-                        wallet,
-                        storage,
-                        agent_name=agent_name,
-                        chain_ids=chain_ids,
-                        raw_pages=raw_pos_pages if not args.no_export else None,
-                    )
-                except Exception as exc:
-                    if uniblock_client is None:
-                        raise
-                    logger.warning(
-                        "Zerion sync failed for '%s' (%s): %s — falling back to Uniblock/DeBank",
-                        agent_name,
-                        wallet,
-                        exc,
-                    )
-                    debank_raw = sync_via_debank(
-                        uniblock_client,
-                        wallet,
-                        storage,
-                        agent_name=agent_name,
-                        chain_ids=chain_ids,
-                    )
-                    provider = "debank"
+            if uniblock_client is None:
+                raise ValueError("Uniblock client is not configured")
+            if args.full_resync:
+                logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
+                storage.clear_transfers(wallet_lower)
+            logger.info("Syncing agent '%s' (%s) via Uniblock/DeBank", agent_name, wallet)
+            debank_raw = sync_via_debank(
+                uniblock_client,
+                wallet,
+                storage,
+                agent_name=agent_name,
+                chain_ids=chain_ids,
+            )
 
             # Data quality contract validation
             try:
@@ -1155,7 +1070,6 @@ def main():
                     agent_name,
                     provider,
                     storage,
-                    client if args.source == "zerion" else None,
                     uniblock_client,
                     chain_ids,
                     run_timestamp,
@@ -1234,7 +1148,7 @@ def main():
 
         except HTTPError as exc:
             logger.error(
-                "Skipping agent '%s' (%s) due to Zerion API error: %s",
+                "Skipping agent '%s' (%s) due to API error: %s",
                 agent_name,
                 wallet,
                 exc,

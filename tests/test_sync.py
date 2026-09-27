@@ -1,4 +1,4 @@
-"""Unit tests for Zerion sync parsing logic."""
+"""Unit tests for Agent Accounting ingestion and parsing logic."""
 from __future__ import annotations
 
 import os
@@ -324,23 +324,15 @@ agents:
         os.close(fd)
 
         try:
-            def fake_get_transactions(wallet, **kwargs):
+            def fake_sync_via_debank(client, wallet, storage, **kwargs):
                 if wallet.lower() == "0xe51b7dba38e732a19838c3f23816df7092441597":
                     resp = Response()
                     resp.status_code = 400
-                    raise HTTPError("Unsupported address", response=resp)
-                return iter([])
+                    raise HTTPError("API error", response=resp)
+                return {"user_token_list": []}
 
-            def fake_get_positions(wallet, **kwargs):
-                return iter([])
-
-            with patch.dict(os.environ, {"ZERION_API_KEY": "test-key"}):
-                with patch("main.ZerionClient") as mock_client_cls:
-                    client = MagicMock()
-                    client.get_transactions.side_effect = fake_get_transactions
-                    client.get_positions.side_effect = fake_get_positions
-                    mock_client_cls.return_value = client
-
+            with patch.dict(os.environ, {"UNIBLOCK_API_KEY": "test-key"}):
+                with patch("main.sync_via_debank", side_effect=fake_sync_via_debank):
                     with tempfile.TemporaryDirectory() as tmpdir:
                         with patch.object(sys, "argv", [
                             "main.py",
@@ -348,7 +340,6 @@ agents:
                             "--db-path", db_path,
                             "--output-dir", tmpdir,
                             "--archive-dir", str(Path(tmpdir) / "archive"),
-                            "--skip-uniblock",
                             "--skip-rpc",
                             "--log-file", "",
                             "--report-dir", str(Path(tmpdir) / "report"),

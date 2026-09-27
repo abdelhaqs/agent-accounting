@@ -13,14 +13,14 @@
 
 ## 1. Executive Summary
 
-This run represents the first production execution where **Uniblock (DeBank) was designated as the sole primary data source**, completely eliminating dependencies on Zerion, and using **live On-Chain JSON-RPC queries** to independently verify balances.
+This run represents the first production execution where **Uniblock (DeBank) was designated as the sole primary data source**, completely eliminating legacy third-party dependencies, and using **live On-Chain JSON-RPC queries** to independently verify balances.
 
 ### Key Highlights:
 1. **100% Healthy Reconciliation:**
    - All 3 agents achieved **`OK`** reconciliation status.
    - Stored balances from Uniblock matched on-chain JSON-RPC ground truth with **near-zero deltas** (between **-0.003%** and **+0.000%**).
-2. **Zerion Completely Bypassed:**
-   - Zero API calls were made to Zerion (`--source uniblock`).
+2. **Clean Ingestion Without Double-Counting:**
+   - Pure multi-agent accounting via Uniblock (`--source uniblock`).
    - Stored values are free from router wrapper inflation and multi-protocol double counting.
 3. **Resilient Rate-Limiting & RPC Failover:**
    - Uniblock's rate limits (`HTTP 429`) were gracefully managed via dynamic exponential backoff and dual-key rotation.
@@ -140,7 +140,7 @@ Comparing this run against previous snapshots provides direct insight into how c
 
 | Component | Previous Architecture | New Architecture (This Run) | Result |
 | :--- | :--- | :--- | :--- |
-| **Primary Data Source** | Zerion API (`api.zerion.io`) | **Uniblock Direct API (`api.uniblock.dev/direct/v1/DeBank`)** | Fixed router wrapper double-counting and 1.6x inflation |
-| **Cross-Checking Provider** | Cross-query to Zerion | **Base On-Chain JSON-RPC (`https://mainnet.base.org`)** | Ground truth directly from the Base blockchain |
+| **Primary Data Source** | Legacy Ingestion Engine | **Uniblock Direct API (`api.uniblock.dev/direct/v1/DeBank`)** | Fixed router wrapper double-counting and 1.6x inflation |
+| **Cross-Checking Provider** | Cross-query to secondary provider | **Base On-Chain JSON-RPC (`https://mainnet.base.org`)** | Ground truth directly from the Base blockchain |
 | **API Rate-Limiting** | Single key, would fail on HTTP 429 | **Progressive backoff (1s–5s) + Dual Key Rotation** | Zero unhandled failures |
 | **RPC Fallback** | Uniblock JSON-RPC only | **Direct failover to Base Public RPC** | Contract checks never blocked by Uniblock quota |

@@ -13,11 +13,10 @@ Open PowerShell in the project directory (`C:\Users\chris\Projects\agent-account
 gcloud auth login
 
 # 2. Trigger the Cloud Run ETL Job and wait for it to complete
-.\trigger_sync.ps1
+.\dag\trigger_sync.ps1
 
 # 3. Pull newly created snapshots & logs to your local machine
-.\download_archive.ps1
-.\download_logs.ps1
+.\dag\trigger_sync.ps1 -ShowLogs
 ```
 
 ---
@@ -44,27 +43,27 @@ gcloud config set run/region us-central1
 
 ### Method A: Using `trigger_sync.ps1` (Recommended)
 
-[`trigger_sync.ps1`](file:///c:/Users/chris/Projects/agent-accounting/trigger_sync.ps1) is the primary helper script. It handles prerequisites, secret updates, container rebuilding, Cloud Run execution, and post-run log streaming.
+[`dag/trigger_sync.ps1`](../dag/trigger_sync.ps1) is the primary helper script. It handles prerequisites, secret updates, container rebuilding, Cloud Run execution, and post-run log streaming.
 
 #### Common Scenarios:
 
 ```powershell
 # Standard Trigger (executes Cloud Run job, waits for completion, and displays logs)
-.\trigger_sync.ps1
+.\dag\trigger_sync.ps1
 
 # Fire-and-Forget (triggers execution asynchronously in the background without waiting)
-.\trigger_sync.ps1 -NoWait
+.\dag\trigger_sync.ps1 -NoWait
 
 # Update Uniblock API Key Secret before running
 # (Reads the latest UNIBLOCK_API_KEY from .env and uploads it to GCP Secret Manager)
-.\trigger_sync.ps1 -UpdateSecret
+.\dag\trigger_sync.ps1 -UpdateSecret
 
 # Rebuild Container Code before running
 # (Submits latest code & agents.yaml to Google Cloud Build, rebuilds the Docker image, then triggers the job)
-.\trigger_sync.ps1 -DeployCode
+.\dag\trigger_sync.ps1 -DeployCode
 
 # Full Update & Deploy: Update API Secret + Rebuild Code + Execute
-.\trigger_sync.ps1 -UpdateSecret -DeployCode
+.\dag\trigger_sync.ps1 -UpdateSecret -DeployCode
 ```
 
 #### Parameter Breakdown:
@@ -72,7 +71,7 @@ gcloud config set run/region us-central1
 | :--- | :--- | :--- |
 | `-ProjectId` | `"agent-accounting-506719"` | Target GCP project ID |
 | `-Region` | `"us-central1"` | GCP region hosting the Cloud Run job |
-| `-JobName` | `"zerion-sync"` | Name of the Cloud Run job |
+| `-JobName` | `"agent-accounting-sync"` | Name of the Cloud Run job |
 | `-NoWait` | `$false` | When specified, returns immediately after triggering |
 | `-ShowLogs` | `$true` | Fetches and prints the last 30 execution logs upon completion |
 | `-UpdateSecret` | `$false` | Pushes current `.env` Uniblock API key to GCP Secret Manager |
@@ -86,7 +85,7 @@ If you prefer using pure `gcloud` commands without PowerShell wrapper scripts:
 
 #### Synchronous Execution (Wait for Completion)
 ```powershell
-gcloud run jobs execute zerion-sync `
+gcloud run jobs execute agent-accounting-sync `
     --region=us-central1 `
     --project=agent-accounting-506719 `
     --wait
@@ -94,7 +93,7 @@ gcloud run jobs execute zerion-sync `
 
 #### Asynchronous Execution (Start in Background)
 ```powershell
-gcloud run jobs execute zerion-sync `
+gcloud run jobs execute agent-accounting-sync `
     --region=us-central1 `
     --project=agent-accounting-506719
 ```
@@ -102,10 +101,10 @@ gcloud run jobs execute zerion-sync `
 #### Execute with Temporary Environment Overrides
 To run a test with custom environment variables without altering the deployed Cloud Run job specification:
 ```powershell
-gcloud run jobs execute zerion-sync `
+gcloud run jobs execute agent-accounting-sync `
     --region=us-central1 `
     --project=agent-accounting-506719 `
-    --update-env-vars="LOG_LEVEL=DEBUG" `
+    --update-env-vars="CHAIN_IDS=base" `
     --wait
 ```
 
@@ -113,10 +112,10 @@ gcloud run jobs execute zerion-sync `
 
 ### Method C: Triggering via Cloud Scheduler
 
-The production ETL is scheduled to execute on a recurring cadence (e.g. every 6 hours or 30 minutes). You can manually trigger the Cloud Scheduler job to test the exact production scheduler path:
+The production ETL is scheduled to execute on a recurring cadence (e.g. every 30 minutes). You can manually trigger the Cloud Scheduler job to test the exact production scheduler path:
 
 ```powershell
-gcloud scheduler jobs run zerion-pipeline-trigger `
+gcloud scheduler jobs run agent-accounting-30min `
     --location=us-central1 `
     --project=agent-accounting-506719
 ```
@@ -129,7 +128,7 @@ gcloud scheduler jobs run zerion-pipeline-trigger `
 View the status of past and running Cloud Run job executions:
 ```powershell
 gcloud run jobs executions list `
-    --job=zerion-sync `
+    --job=agent-accounting-sync `
     --region=us-central1 `
     --project=agent-accounting-506719
 ```
@@ -137,7 +136,7 @@ gcloud run jobs executions list `
 ### Stream Live Logs in Real-Time
 Tail the live container logs while the job is running:
 ```powershell
-gcloud beta run jobs logs tail zerion-sync `
+gcloud beta run jobs logs tail agent-accounting-sync `
     --region=us-central1 `
     --project=agent-accounting-506719
 ```
@@ -145,7 +144,7 @@ gcloud beta run jobs logs tail zerion-sync `
 ### Query Recent Cloud Logging Entries
 Read the last 50 log lines generated by the ETL job:
 ```powershell
-gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=zerion-sync" `
+gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=agent-accounting-sync" `
     --limit=50 `
     --project=agent-accounting-506719 `
     --format="value(timestamp,textPayload)"
@@ -153,21 +152,13 @@ gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=ze
 
 ---
 
-## 📥 4. Syncing Output to Your Local Machine
+## 📥 4. Storage & Artifacts
 
-Once the Cloud Run job finishes, raw snapshot JSONs and sync text logs are stored in Google Cloud Storage (`gs://agent-accounting-506719-zerion-raw-data`).
+Once the Cloud Run job finishes, raw snapshot JSONs and sync text logs are stored in Google Cloud Storage (`gs://agent-accounting-506719-agent-accounting-raw-data`).
 
-To pull only the newly created data to your local machine:
-
+To list bucket contents:
 ```powershell
-# 1. Incrementally download raw JSON snapshots into .\archive_downloads\
-.\download_archive.ps1
-
-# 2. Incrementally download sync logs into .\logs_downloads\
-.\download_logs.ps1
-
-# 3. Refresh the USDC Balance Dashboard
-python build_usdc_balance_data.py
+gcloud storage ls gs://agent-accounting-506719-agent-accounting-raw-data/
 ```
 
 ---
@@ -182,19 +173,19 @@ python build_usdc_balance_data.py
 - **Symptom:** On-chain verification reports HTTP 429 or fails to fetch contract balances via Uniblock.
 - **Fix:** Update your `.env` with a fresh or backup Uniblock API key, then run:
   ```powershell
-  .\trigger_sync.ps1 -UpdateSecret
+  .\dag\trigger_sync.ps1 -UpdateSecret
   ```
 
 ### 3. Changed `agents.yaml` or Python Code Not Reflected on GCP
-- **Symptom:** A newly added agent in [`agents.yaml`](file:///c:/Users/chris/Projects/agent-accounting/agents.yaml) does not appear in Cloud Run executions.
+- **Symptom:** A newly added agent in [`config/agents.yaml`](../config/agents.yaml) does not appear in Cloud Run executions.
 - **Cause:** Cloud Run runs from an immutable container image hosted in Google Artifact Registry. Modifying local files does not automatically update the container.
-- **Fix:** Run `.\trigger_sync.ps1 -DeployCode` (or [`.\deploy-cloudbuild.ps1`](file:///c:/Users/chris/Projects/agent-accounting/deploy-cloudbuild.ps1)) to rebuild the image with your latest files.
+- **Fix:** Run `.\dag\trigger_sync.ps1 -DeployCode` (or [`.\dag\deploy-cloudbuild.ps1`](../dag/deploy-cloudbuild.ps1)) to rebuild the image with your latest files.
 
 ### 4. Viewing Detailed Failure Information
 If an execution fails:
 ```powershell
 # 1. Get the name of the failed execution
-gcloud run jobs executions list --job=zerion-sync --region=us-central1 --limit=3
+gcloud run jobs executions list --job=agent-accounting-sync --region=us-central1 --limit=3
 
 # 2. Describe the execution details
 gcloud run jobs executions describe <EXECUTION_NAME> --region=us-central1

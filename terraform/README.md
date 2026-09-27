@@ -1,16 +1,16 @@
-# Zerion GCP Pipeline — Terraform
+# Agent Accounting GCP Pipeline — Terraform
 
-Infrastructure-as-Code for the Zerion data pipeline on GCP.
+Infrastructure-as-Code for the Agent Accounting data pipeline on GCP.
 
 ## What it deploys
 
-- **Cloud Storage** bucket for raw JSON data
-- **BigQuery** dataset + partitioned raw tables
-- **Secret Manager** secret for `ZERION_API_KEY`
-- **Service account** with least-privilege IAM bindings
-- **Cloud Run Job** that runs the Python sync script
-- **Cloud Workflows** orchestration definition
-- **Cloud Scheduler** job to trigger the workflow every 30 minutes
+- **Cloud Storage** bucket for raw JSON data (`agent-accounting-raw-data`)
+- **BigQuery** dataset + partitioned raw tables (`agent_accounting`)
+- **Secret Manager** secret for `UNIBLOCK_API_KEY`
+- **Service account** (`accounting-sync`) with least-privilege IAM bindings
+- **Cloud Run Job** (`agent-accounting-sync`) that runs the Python sync pipeline
+- **Cloud Workflows** (`agent-accounting-pipeline`) orchestration definition
+- **Cloud Scheduler** job (`agent-accounting-30min`) to trigger the workflow every 30 minutes
 
 ## Prerequisites
 
@@ -33,6 +33,6 @@ terraform apply
 ## Manual test
 
 ```bash
-gcloud run jobs execute zerion-sync --region=us-central1
-gcloud workflows executions list zerion-pipeline --location=us-central1
+gcloud run jobs execute agent-accounting-sync --region=us-central1
+gcloud workflows executions list agent-accounting-pipeline --location=us-central1
 ```
