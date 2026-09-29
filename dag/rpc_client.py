@@ -24,7 +24,13 @@ import os
 logger = logging.getLogger(__name__)
 
 BASE_CHAIN_ID = 8453
-DEFAULT_PUBLIC_RPC = "https://mainnet.base.org"
+DEFAULT_PUBLIC_RPCS = [
+    "https://mainnet.base.org",
+    "https://base.llamarpc.com",
+    "https://base-rpc.publicnode.com",
+    "https://1rpc.io/base",
+]
+DEFAULT_PUBLIC_RPC = DEFAULT_PUBLIC_RPCS[0]
 UNIBLOCK_RPC_URL = f"https://api.uniblock.dev/uni/v1/json-rpc?chainId={BASE_CHAIN_ID}"
 RPC_URL = os.getenv("BASE_RPC_URL") or os.getenv("RPC_URL") or UNIBLOCK_RPC_URL
 
@@ -132,6 +138,31 @@ class UniblockRpcClient:
         self.session.headers["x-api-key"] = next_key
         return True
 
+    def _call_public_rpc(self, payload: dict[str, Any], method: str) -> Any:
+        """Call public Base RPC endpoints with fallback across the pool."""
+        last_err: Exception | None = None
+        for rpc_url in DEFAULT_PUBLIC_RPCS:
+            try:
+                resp = requests.post(
+                    rpc_url,
+                    json=payload,
+                    headers={"content-type": "application/json"},
+                    timeout=20,
+                )
+                if resp.status_code == 429:
+                    continue
+                resp.raise_for_status()
+                body = resp.json()
+                if "error" in body:
+                    raise RpcError(f"{method} failed on public RPC ({rpc_url}): {body['error']}")
+                return body.get("result")
+            except RpcError:
+                raise
+            except Exception as exc:
+                last_err = exc
+                continue
+        raise RpcError(f"{method} failed across all public Base RPC endpoints: {last_err}")
+
     def call(self, method: str, params: list[Any]) -> Any:
         """Raw JSON-RPC call. Returns the 'result' field or raises RpcError."""
         max_attempts = len(self.api_keys) if self.api_keys else 1
@@ -145,18 +176,8 @@ class UniblockRpcClient:
         }
 
         # If already switched to public RPC fallback, call it directly
-        if getattr(self, "_use_public_rpc", False) or not self.api_keys:
-            resp = requests.post(
-                DEFAULT_PUBLIC_RPC,
-                json=payload,
-                headers={"content-type": "application/json"},
-                timeout=30,
-            )
-            resp.raise_for_status()
-            body = resp.json()
-            if "error" in body:
-                raise RpcError(f"{method} failed on public RPC: {body['error']}")
-            return body.get("result")
+        if getattr(self, "_use_public_rpc", False) or not self.api_keys or not self.api_keys[0]:
+            return self._call_public_rpc(payload, method)
 
         for attempt in range(max_attempts):
             try:
@@ -171,7 +192,10 @@ class UniblockRpcClient:
                 if "error" in body:
                     raise RpcError(f"{method} failed: {body['error']}")
                 return body.get("result")
-            except (requests.RequestException, RpcError) as exc:
+            except RpcError:
+                # EVM contract reverts or invalid parameters are NOT auth failures. Do NOT burn keys.
+                raise
+            except requests.RequestException as exc:
                 last_exc = exc
                 status = getattr(getattr(exc, "response", None), "status_code", None)
                 if attempt < max_attempts - 1 and self._switch_to_next_key(
@@ -180,21 +204,12 @@ class UniblockRpcClient:
                     continue
                 break
 
-        # Fallback to public Base RPC
+        # Fallback to public Base RPC pool
         try:
-            logger.info("Falling back to public Base RPC (%s) for %s", DEFAULT_PUBLIC_RPC, method)
-            fallback_resp = requests.post(
-                DEFAULT_PUBLIC_RPC,
-                json=payload,
-                headers={"content-type": "application/json"},
-                timeout=30,
-            )
-            fallback_resp.raise_for_status()
-            body = fallback_resp.json()
-            if "error" in body:
-                raise RpcError(f"{method} failed on public RPC: {body['error']}")
+            logger.info("Falling back to public Base RPC pool for %s", method)
+            result = self._call_public_rpc(payload, method)
             self._use_public_rpc = True
-            return body.get("result")
+            return result
         except Exception as fb_exc:
             logger.debug("Public Base RPC fallback failed: %s", fb_exc)
         if last_exc:

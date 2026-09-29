@@ -158,9 +158,14 @@ def generate_value_check_report(
                 usd_str = f"${usd:,.2f}" if usd is not None else "n/a"
                 if kind == "wallet_token":
                     lines.append(f"  - `{sym}`: {usd_str} (wallet token)")
-                elif kind == "vault_4626":
-                    pool = item.get("pool", "")[:10]
-                    lines.append(f"  - `{sym}`: {usd_str} (ERC-4626 vault `{pool}...`)")
+                elif kind in ("vault", "vault_4626"):
+                    p = item.get("protocol") or "ERC-4626"
+                    vault = (item.get("vault_address") or item.get("pool") or "")[:10]
+                    lines.append(f"  - `{sym}`: {usd_str} ({p} vault `{vault}...`)")
+                elif kind == "money_market":
+                    p = item.get("protocol") or "Money Market"
+                    market = (item.get("market") or "")[:10]
+                    lines.append(f"  - `{sym}`: {usd_str} ({p} market `{market}...`)")
                 elif kind == "unverified":
                     lines.append(f"  - `{sym}` (unverified/reward): {usd_str}")
         lines.append("")

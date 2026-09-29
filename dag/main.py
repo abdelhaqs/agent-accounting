@@ -602,14 +602,16 @@ def verify_onchain(
     for p in protocols:
         pname = p.get("name") or p.get("id") or "protocol"
         for item in p.get("portfolio_item_list", []):
-            pool_id = (item.get("pool") or {}).get("id") or ""
-            if not pool_id.startswith("0x") or pool_id.lower() in seen_vaults:
+            raw_pool_id = (item.get("pool") or {}).get("id") or ""
+            # Strip suffixes like :yield to ensure clean 42-char EVM address
+            pool_id = raw_pool_id.split(":")[0].strip().lower()
+            if not pool_id.startswith("0x") or len(pool_id) != 42 or pool_id in seen_vaults:
                 continue
             detail = item.get("detail") or {}
             supply = detail.get("supply_token_list") or []
             if not supply:
                 continue
-            seen_vaults.add(pool_id.lower())
+            seen_vaults.add(pool_id)
             underlying = supply[0]
             decimals = underlying.get("decimals")
             price = underlying.get("price")
@@ -641,8 +643,8 @@ def verify_onchain(
                     "price": price, "usd_value": usd,
                 })
                 continue
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("On-chain check: %s vault %s not verifiable via ERC-4626: %s", pname, pool_id[:10], exc)
 
             # Strategy 2: Compound-fork money market (Moonwell etc.) — the
             # DeBank pool id is the comptroller; resolve the mToken market
