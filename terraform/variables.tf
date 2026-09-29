@@ -27,9 +27,9 @@ variable "sync_image" {
 }
 
 variable "schedule" {
-  description = "Cloud Scheduler cron expression"
+  description = "Cloud Scheduler cron expression (default: 6 times a day, every 4 hours)"
   type        = string
-  default     = "*/30 * * * *"
+  default     = "0 0,4,8,12,16,20 * * *"
 }
 
 variable "uniblock_api_key" {

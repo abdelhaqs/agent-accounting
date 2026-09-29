@@ -2,8 +2,8 @@ name: Sync Reports from GCP to GitHub
 
 on:
   schedule:
-    # Run 30 minutes after each 6-hr scheduled Cloud Run sync (00:30, 06:30, 12:30, 18:30 UTC)
-    - cron: '30 0,6,12,18 * * *'
+    # Run 30 minutes after each scheduled Cloud Run sync (00:30, 04:30, 08:30, 12:30, 16:30, 20:30 UTC)
+    - cron: '30 0,4,8,12,16,20 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 permissions:
