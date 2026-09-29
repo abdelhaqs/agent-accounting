@@ -7,7 +7,8 @@ on:
   workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 permissions:
-  contents: write
+  id-token: write # Required for Workload Identity Federation
+  contents: write # Required to push committed reports
 
 jobs:
   sync:
@@ -18,36 +19,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check for GCP Credentials Secret
-        id: check_auth
-        run: |
-          if [ -n "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "has_auth=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_auth=false" >> $GITHUB_OUTPUT
-            echo "::warning ::GCP_SA_KEY secret not found in repository secrets. To enable automatic GCS syncing, add a GCP Service Account key as GCP_SA_KEY."
-          fi
-
-      - name: Authenticate to Google Cloud
-        if: steps:check_auth.outputs.has_auth == 'true'
+      - name: Authenticate to Google Cloud via Workload Identity Federation
+        id: auth
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Google Cloud SDK
-        if: steps:check_auth.outputs.has_auth == 'true'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Download Reports from GCS
-        if: steps:check_auth.outputs.has_auth == 'true'
         run: |
           mkdir -p docs/report
-          BUCKET="agent-accounting-506719-agent-accounting-raw-data"
-          echo "Syncing reports from gs://${BUCKET}/reports/..."
-          gcloud storage cp -r "gs://${BUCKET}/reports/*" docs/report/ || true
+          echo "Scanning GCS buckets for reports..."
+          for BUCKET in "agent-accounting-506719-zerion-raw-data" "agent-accounting-506719-agent-accounting-raw-data"; do
+            if gcloud storage ls "gs://${BUCKET}/reports/" &>/dev/null; then
+              echo "Downloading from gs://${BUCKET}/reports/..."
+              gcloud storage cp -r "gs://${BUCKET}/reports/*" docs/report/ || true
+              break
+            fi
+          done
 
       - name: Commit and Push New Reports
-        if: steps:check_auth.outputs.has_auth == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
