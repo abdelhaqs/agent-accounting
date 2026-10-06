@@ -140,6 +140,7 @@ gcloud run jobs execute agent-accounting-sync --region=us-central1
 
 ## Documentation & Architecture
 
+- **[Off-Chain ETL Rate Calculation & Vault Push Specification](docs/OFFCHAIN_ETL_RATE_CALCULATION_SPEC.md):** Formal specifications, technical audit, checklist, and color-coded event flowchart for multi-chain asset aggregation and broadcasting updates to the on-chain `AccountantWithRateProviders`.
 - **[GCP Pipeline Architecture](docs/pipeline_architecture_gcp.md):** Full Cloud Run, Cloud Scheduler, Cloud Workflows, BigQuery, and GCS pipeline specifications.
 - **[How to Trigger ETL on GCP](docs/how_to_trigger_etl_on_gcp.md):** Step-by-step operational guide for triggering, monitoring, and debugging Cloud Run sync runs.
 - **[Audit Reports & Dashboards](docs/report/README.md):** Automated Markdown value checks and interactive HTML portfolio dashboards.
