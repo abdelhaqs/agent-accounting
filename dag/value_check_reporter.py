@@ -66,7 +66,7 @@ def generate_value_check_report(
         f"**Execution Run ID:** `{run_timestamp}`  ",
         f"**Run Timestamp:** {formatted_date}  ",
         f"**Primary Source:** **{primary_source.upper()}**  ",
-        "**Cross-Check Layer:** **Base On-Chain JSON-RPC** (`https://mainnet.base.org`)  ",
+        f"**Cross-Check Layer:** {'**Base & Arbitrum Sepolia Multi-Chain JSON-RPC**' if primary_source == 'onchain' else '**Base On-Chain JSON-RPC** (`https://mainnet.base.org`)'}  ",
         f"**Total Agents Audited:** {total_agents}  ",
         "",
         "---",

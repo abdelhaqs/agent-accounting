@@ -1,20 +1,51 @@
 agents:
-  - name: Yieldseeker Base Agent 1
-    address: "0x40813DF8a23534783E99031fe4F57A65ACEeb414"
-  - name: Yieldseeker Base Agent 2
-    address: "0xe51b7dba38e732a19838c3f23816df7092441597"
-  - name: ZyFAI Base Agent 2
-    address: "0xBf96c935F7cB35b86Efaa0693D81d875f4B4e7eb"
-  - name: Mamo Base Agent 1
-    address: "0x7c4f5EfCE7ebD0E99D9d38CAd4573140087162dd"
-  - name: Zyfai AB Risky Agent
-    address: "0x6a9e4e59df3e65fdb6a2f8d1ab6f0cd3943c015b"
-    start_block: 51427768
-  - name: Mamo AB Agent
-    address: "0x7d42ae4ec4367b52dc03abfc077461cf5c48b256"
-    start_block: 51053952
-  - name: Zyfai Yield Maxing Agent
-    address: "0x3de51ddb55ffec013f428288559dd993e9eeb6b6"
-    start_block: 43587490
-  - name: Conservative Zyfai Agent
-    address: "0xc8118008228edd4769fe42f091e7d099a45c4774"
+  - name: "ZyFAI Base Agent Strategy"
+    address: "0x8EB5426d68f9DCeFE30e9c006AE7fdF524161627"
+    chain: "base_sepolia"
+    chain_id: 84532
+    role: "venue_agent"
+    tokens:
+      - address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+        symbol: "USDC"
+        decimals: 6
+
+  - name: "YieldSeeker Base Agent Strategy"
+    address: "0xA9d3B24e2dB0C5278268943c0E0e0133343CBa99"
+    chain: "base_sepolia"
+    chain_id: 84532
+    role: "venue_agent"
+    tokens:
+      - address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+        symbol: "USDC"
+        decimals: 6
+
+  - name: "Mamo Base Agent Strategy"
+    address: "0xE5C41ACeAba121746a43927D8b68D5154eaaF4C8"
+    chain: "base_sepolia"
+    chain_id: 84532
+    role: "venue_agent"
+    tokens:
+      - address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+        symbol: "USDC"
+        decimals: 6
+
+  - name: "Bridge Agent Strategy"
+    address: "0xE8117Bd54BF630DB842BC4c2e6DB835c5D63167C"
+    chain: "arbitrum_sepolia"
+    chain_id: 421614
+    role: "bridge_agent"
+    tokens:
+      - address: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d"
+        symbol: "USDC"
+        decimals: 6
+
+  - name: "BoringVault (bcUSD)"
+    address: "0x40dc77867A136bd19dE6F7bb048D2C4c321f05A0"
+    chain: "arbitrum_sepolia"
+    chain_id: 421614
+    role: "vault"
+    accountant: "0x090eD0ff4B6D9a34c9a6100dd2795644B5915aFd"
+    tokens:
+      - address: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d"
+        symbol: "USDC"
+        decimals: 6

@@ -17,11 +17,18 @@ import json
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).parent
-_full_archive_dir = ROOT / "archive_downloads" / "full_archive"
-ARCHIVE_DIR = _full_archive_dir if _full_archive_dir.exists() else (ROOT / "archive_downloads")
-OUTPUT_JSON = ROOT / "usdc_balance_data.json"
-DASHBOARD = ROOT / "usdc_balance_chart.html"
+ROOT = Path(__file__).parent.resolve()
+BASE_DIR = ROOT.parent if (ROOT.parent / "Archive").exists() else ROOT
+_full_archive_dir = BASE_DIR / "archive_downloads" / "full_archive"
+if _full_archive_dir.exists():
+    ARCHIVE_DIR = _full_archive_dir
+elif (BASE_DIR / "Archive").exists():
+    ARCHIVE_DIR = BASE_DIR / "Archive"
+else:
+    ARCHIVE_DIR = BASE_DIR / "archive_downloads"
+
+OUTPUT_JSON = BASE_DIR / "usdc_balance_data.json"
+DASHBOARD = BASE_DIR / "usdc_balance_chart.html"
 
 # matches: <anything>_balances_20260902_210815.json
 BALANCE_FILE_RE = re.compile(r"^(?P<prefix>.+)_balances_(?P<ts>\d{8}_\d{6})\.json$")

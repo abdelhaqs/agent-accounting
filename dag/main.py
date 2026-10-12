@@ -532,6 +532,198 @@ def reconcile_balances(
     return record
 
 
+def sync_agent_onchain(
+    agent: dict[str, Any],
+    storage: Storage,
+    full_resync: bool = False,
+    run_timestamp: str = "",
+) -> dict[str, Any]:
+    """Sync balances and ERC-20 transfers directly from on-chain JSON-RPC nodes."""
+    from rpc_client import get_rpc_client_for_chain
+
+    agent_name = agent.get("name")
+    wallet = agent["address"]
+    wallet_lower = wallet.lower()
+    chain = agent.get("chain", "base_sepolia")
+    role = agent.get("role", "venue_agent")
+    tokens = agent.get("tokens", [])
+    accountant = agent.get("accountant")
+
+    rpc = get_rpc_client_for_chain(chain)
+
+    if full_resync:
+        storage.clear_transfers(wallet_lower)
+
+    # 1. Native ETH balance
+    balances_to_save: list[Balance] = []
+    try:
+        eth_wei = rpc.get_eth_balance(wallet)
+        eth_float = eth_wei / 1e18
+        balances_to_save.append(
+            Balance(
+                wallet=wallet_lower,
+                agent_name=agent_name,
+                chain=chain,
+                position_type="wallet",
+                token_id=f"{chain}-eth",
+                token_name="Ether",
+                token_symbol="ETH",
+                token_address=None,
+                chain_id=str(rpc.chain_id),
+                decimals=18,
+                balance_raw=str(eth_wei),
+                balance_float=eth_float,
+                price=0.0,
+                usd_value=0.0,
+                is_receipt_token=False,
+                provider="onchain_rpc",
+            )
+        )
+    except Exception as exc:
+        logger.warning("Could not fetch native ETH balance for %s: %s", wallet, exc)
+
+    # 2. Configured Tokens (e.g. USDC)
+    for tok in tokens:
+        t_addr = tok.get("address")
+        if not t_addr:
+            continue
+        try:
+            symbol = tok.get("symbol") or rpc.get_token_symbol(t_addr) or "USDC"
+            name = tok.get("name") or rpc.get_token_name(t_addr) or symbol
+            decimals = tok.get("decimals") or rpc.get_token_decimals(t_addr) or 6
+            raw_bal = rpc.get_erc20_balance(t_addr, wallet)
+            bal_float = raw_bal / (10 ** decimals)
+            price = 1.0 if "USD" in symbol.upper() else 1.0
+            usd_val = bal_float * price
+            balances_to_save.append(
+                Balance(
+                    wallet=wallet_lower,
+                    agent_name=agent_name,
+                    chain=chain,
+                    position_type="wallet",
+                    token_id=f"{chain}-{symbol.lower()}",
+                    token_name=name,
+                    token_symbol=symbol,
+                    token_address=t_addr.lower(),
+                    chain_id=str(rpc.chain_id),
+                    decimals=decimals,
+                    balance_raw=str(raw_bal),
+                    balance_float=bal_float,
+                    price=price,
+                    usd_value=usd_val,
+                    is_receipt_token=False,
+                    provider="onchain_rpc",
+                )
+            )
+        except Exception as exc:
+            logger.warning("Could not fetch token balance for %s (%s): %s", tok, wallet, exc)
+
+    # 3. Vault share accounting
+    if role == "vault":
+        try:
+            supply_raw = rpc.get_vault_total_supply(wallet)
+            supply_float = supply_raw / 1e6
+            rate = 1.0
+            if accountant:
+                rate = rpc.get_accountant_rate(accountant)
+            balances_to_save.append(
+                Balance(
+                    wallet=wallet_lower,
+                    agent_name=agent_name,
+                    chain=chain,
+                    position_type="vault_shares",
+                    token_id=f"{chain}-bcusd",
+                    token_name="Bond Credit Vault Shares",
+                    token_symbol="bcUSD",
+                    token_address=wallet.lower(),
+                    chain_id=str(rpc.chain_id),
+                    decimals=6,
+                    balance_raw=str(supply_raw),
+                    balance_float=supply_float,
+                    price=rate,
+                    usd_value=supply_float * rate,
+                    is_receipt_token=True,
+                    provider="onchain_rpc",
+                )
+            )
+        except Exception as exc:
+            logger.warning("Could not fetch vault shares for %s: %s", wallet, exc)
+
+    # Save to SQLite
+    storage.replace_balances(wallet_lower, balances_to_save)
+
+    # 4. Fetch real on-chain transfers
+    transfers_to_save: list[Transfer] = []
+    for tok in tokens:
+        t_addr = tok.get("address")
+        if not t_addr:
+            continue
+        decimals = tok.get("decimals", 6)
+        symbol = tok.get("symbol", "USDC")
+        try:
+            logs = rpc.get_transfer_logs(t_addr, wallet)
+            for log in logs:
+                direction = log.get("_direction", "in")
+                topics = log.get("topics", [])
+                data = log.get("data", "0x")
+                tx_hash = log.get("transactionHash", "")
+                sender = "0x" + topics[1][-40:] if len(topics) > 1 else ""
+                recipient = "0x" + topics[2][-40:] if len(topics) > 2 else ""
+                amount_raw = str(int(data, 16)) if data and data != "0x" else "0"
+                amount_float = int(amount_raw) / (10 ** decimals)
+                tr = Transfer(
+                    wallet=wallet_lower,
+                    agent_name=agent_name,
+                    tx_id=f"{tx_hash}_{log.get('logIndex', '0')}",
+                    tx_hash=tx_hash,
+                    chain=chain,
+                    mined_at=datetime.now(timezone.utc),
+                    direction=direction,
+                    sender=sender.lower(),
+                    recipient=recipient.lower(),
+                    token_id=f"{chain}-{symbol.lower()}",
+                    token_name=tok.get("name", "USD Coin"),
+                    token_symbol=symbol,
+                    token_address=t_addr.lower(),
+                    chain_id=str(rpc.chain_id),
+                    decimals=decimals,
+                    amount_raw=amount_raw,
+                    amount_float=amount_float,
+                    price=1.0,
+                    usd_value=amount_float * 1.0,
+                    provider="onchain_rpc",
+                )
+                transfers_to_save.append(tr)
+        except Exception as exc:
+            logger.debug("Transfer logs check skipped for %s: %s", t_addr, exc)
+
+    if transfers_to_save:
+        storage.save_transfers(transfers_to_save)
+
+    total_usd = sum(b.usd_value for b in balances_to_save if not b.is_receipt_token)
+
+    return {
+        "run_timestamp": run_timestamp,
+        "wallet": wallet_lower,
+        "agent_name": agent_name,
+        "chain": chain,
+        "role": role,
+        "provider": "onchain_rpc",
+        "computed_usd": total_usd,
+        "same_provider_total_usd": total_usd,
+        "cross_provider_total_usd": None,
+        "same_provider_delta_pct": 0.0,
+        "cross_provider_delta_pct": None,
+        "raw_net_usd": total_usd,
+        "delta_usd": 0.0,
+        "delta_pct": 0.0,
+        "status": "OK",
+        "onchain_total_usd": total_usd,
+        "onchain_unverified_usd": 0.0,
+        "onchain_delta_pct": 0.0,
+    }
+
+
 def verify_onchain(
     wallet: str,
     agent_name: str | None,
@@ -928,12 +1120,13 @@ def main():
         action="store_true",
         help="Skip exporting JSON/raw files (only update SQLite)",
     )
+    default_source = os.getenv("DATA_SOURCE", "uniblock" if (os.getenv("UNIBLOCK_API_KEY") or os.getenv("UNIBLOCK_API_KEY_BACKUP")) else "onchain")
     parser.add_argument(
         "--source",
         type=str,
-        choices=["uniblock"],
-        default=os.getenv("DATA_SOURCE", "uniblock"),
-        help="Primary data source for balances and transactions (default: uniblock; env: DATA_SOURCE)",
+        choices=["uniblock", "onchain"],
+        default=default_source,
+        help="Primary data source for balances and transactions (default: inferred; env: DATA_SOURCE)",
     )
     parser.add_argument(
         "--log-file",
@@ -952,8 +1145,8 @@ def main():
     uniblock_key = os.getenv("UNIBLOCK_API_KEY")
     uniblock_backup_key = os.getenv("UNIBLOCK_API_KEY_BACKUP")
 
-    if not args.skip_uniblock and not (uniblock_key or uniblock_backup_key):
-        logger.error("Missing UNIBLOCK_API_KEY. Check your .env file.")
+    if not args.skip_uniblock and args.source == "uniblock" and not (uniblock_key or uniblock_backup_key):
+        logger.error("Missing UNIBLOCK_API_KEY. Check your .env file or use --source onchain.")
         sys.exit(1)
 
     agents = load_agents(args.agents_config)
@@ -1024,21 +1217,42 @@ def main():
             raw_tx_pages: list[dict[str, Any]] = []
             raw_pos_pages: list[dict[str, Any]] = []
             debank_raw: dict[str, Any] | None = None
-            provider = "debank"
+            rec: dict[str, Any] | None = None
 
-            if uniblock_client is None:
-                raise ValueError("Uniblock client is not configured")
-            if args.full_resync:
-                logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
-                storage.clear_transfers(wallet_lower)
-            logger.info("Syncing agent '%s' (%s) via Uniblock/DeBank", agent_name, wallet)
-            debank_raw = sync_via_debank(
-                uniblock_client,
-                wallet,
-                storage,
-                agent_name=agent_name,
-                chain_ids=chain_ids,
-            )
+            if args.source == "uniblock" and uniblock_client is not None and not args.skip_uniblock:
+                provider = "debank"
+                if args.full_resync:
+                    logger.info("Full resync requested: clearing existing transfer data for %s", wallet)
+                    storage.clear_transfers(wallet_lower)
+                logger.info("Syncing agent '%s' (%s) via Uniblock/DeBank", agent_name, wallet)
+                debank_raw = sync_via_debank(
+                    uniblock_client,
+                    wallet,
+                    storage,
+                    agent_name=agent_name,
+                    chain_ids=chain_ids,
+                )
+            else:
+                provider = "onchain_rpc"
+                logger.info("Syncing agent '%s' (%s) via On-Chain JSON-RPC", agent_name, wallet)
+                rec = sync_agent_onchain(
+                    agent, storage, full_resync=args.full_resync, run_timestamp=run_timestamp
+                )
+                reconciliation_records.append(rec)
+                onchain_results[wallet_lower] = {
+                    "onchain_total_usd": rec["onchain_total_usd"],
+                    "onchain_unverified_usd": 0.0,
+                    "onchain_delta_pct": 0.0,
+                    "details": [
+                        {
+                            "symbol": b["token_symbol"],
+                            "balance": b["balance_float"],
+                            "usd": b["usd_value"],
+                            "chain": b["chain"],
+                        }
+                        for b in storage.get_balances(wallet_lower)
+                    ],
+                }
 
             # Data quality contract validation
             try:
@@ -1065,56 +1279,56 @@ def main():
                 except Exception as exc:
                     logger.error("BigQuery load failed for %s: %s", wallet, exc, exc_info=True)
 
-            rec: dict[str, Any] | None = None
-            try:
-                rec = reconcile_balances(
-                    wallet,
-                    agent_name,
-                    provider,
-                    storage,
-                    uniblock_client,
-                    chain_ids,
-                    run_timestamp,
-                )
-                reconciliation_records.append(rec)
-            except Exception as exc:
-                logger.error("Reconciliation failed for %s: %s", wallet, exc, exc_info=True)
-
-            if rpc_client is not None and rec is not None:
+            if args.source != "onchain" and debank_raw is not None:
                 try:
-                    onchain = verify_onchain(
+                    rec = reconcile_balances(
                         wallet,
                         agent_name,
-                        rec["computed_usd"],
-                        storage.get_balances(wallet_lower),
-                        rpc_client,
+                        provider,
+                        storage,
                         uniblock_client,
-                        debank_raw,
+                        chain_ids,
+                        run_timestamp,
                     )
-                    rec["onchain_total_usd"] = onchain["onchain_total_usd"]
-                    rec["onchain_unverified_usd"] = onchain["onchain_unverified_usd"]
-                    rec["onchain_delta_pct"] = onchain["onchain_delta_pct"]
-                    onchain_results[wallet_lower] = onchain
-                    # On-chain ground truth cross-checks the value.
-                    d = onchain["onchain_delta_pct"]
-                    covered = onchain["onchain_total_usd"] + onchain["onchain_unverified_usd"]
-                    if (
-                        d is not None
-                        and abs(d) > RECONCILE_TOLERANCE_PCT
-                        and abs(rec["computed_usd"] - covered) > RECONCILE_TOLERANCE_USD
-                    ):
-                        rec["status"] = "MISMATCH"
-                        logger.warning(
-                            "Reconcile %s: on-chain delta %+.3f%% escalates status to MISMATCH",
-                            agent_name, d,
-                        )
-                    elif d is not None and (
-                        abs(d) <= RECONCILE_TOLERANCE_PCT
-                        or abs(rec["computed_usd"] - covered) <= RECONCILE_TOLERANCE_USD
-                    ):
-                        rec["status"] = "OK"
+                    reconciliation_records.append(rec)
                 except Exception as exc:
-                    logger.error("On-chain verification failed for %s: %s", wallet, exc, exc_info=True)
+                    logger.error("Reconciliation failed for %s: %s", wallet, exc, exc_info=True)
+
+                if rpc_client is not None and rec is not None:
+                    try:
+                        onchain = verify_onchain(
+                            wallet,
+                            agent_name,
+                            rec["computed_usd"],
+                            storage.get_balances(wallet_lower),
+                            rpc_client,
+                            uniblock_client,
+                            debank_raw,
+                        )
+                        rec["onchain_total_usd"] = onchain["onchain_total_usd"]
+                        rec["onchain_unverified_usd"] = onchain["onchain_unverified_usd"]
+                        rec["onchain_delta_pct"] = onchain["onchain_delta_pct"]
+                        onchain_results[wallet_lower] = onchain
+                        # On-chain ground truth cross-checks the value.
+                        d = onchain["onchain_delta_pct"]
+                        covered = onchain["onchain_total_usd"] + onchain["onchain_unverified_usd"]
+                        if (
+                            d is not None
+                            and abs(d) > RECONCILE_TOLERANCE_PCT
+                            and abs(rec["computed_usd"] - covered) > RECONCILE_TOLERANCE_USD
+                        ):
+                            rec["status"] = "MISMATCH"
+                            logger.warning(
+                                "Reconcile %s: on-chain delta %+.3f%% escalates status to MISMATCH",
+                                agent_name, d,
+                            )
+                        elif d is not None and (
+                            abs(d) <= RECONCILE_TOLERANCE_PCT
+                            or abs(rec["computed_usd"] - covered) <= RECONCILE_TOLERANCE_USD
+                        ):
+                            rec["status"] = "OK"
+                    except Exception as exc:
+                        logger.error("On-chain verification failed for %s: %s", wallet, exc, exc_info=True)
 
             if not args.no_export:
                 agent_dir = output_dir / _safe_name(agent_name or wallet_lower)
