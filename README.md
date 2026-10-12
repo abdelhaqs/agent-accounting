@@ -51,20 +51,61 @@ agents:
     address: "0xec23ecb0ec719c8f0f04620f4c58cf3ea671e6bc"
 ```
 
-## Running the Pipeline
+## 🧩 Modular Pipeline Execution (`dag/run.py`)
 
-Using the task runner:
-```powershell
-# Windows
-.\task.ps1 run
-# Linux/macOS
-make run
-```
+The pipeline is split into 5 isolated phases where every venue, calculation step, and guardrail has its own dedicated script and JSON artifact:
 
-Or running the pipeline directly:
+### 1. Test individual venues & extractors:
 ```bash
-python dag/main.py
+python dag/run.py --extract vault        # BoringVault USDC & share supply on Arbitrum Sepolia
+python dag/run.py --extract bridge       # BridgeAgentStrategy idle USDC
+python dag/run.py --extract cctp         # Circle CCTP in-transit burns
+python dag/run.py --extract zyfai        # ZyFAI strategy on Base Sepolia
+python dag/run.py --extract mamo         # Mamo Moonwell/MetaMorpho strategy on Base Sepolia
+python dag/run.py --extract yieldseeker  # YieldSeeker strategy on Base Sepolia
+python dag/run.py --phase extract        # Run all 6 extractors
 ```
+
+### 2. Test granular calculation steps:
+```bash
+python dag/run.py --calculate aggregate  # Sum all 6 venue artifacts -> 02_total_assets.json
+python dag/run.py --calculate fees       # Deduct pending protocol fees -> 02_net_assets.json
+python dag/run.py --calculate rate       # Derive exchange rate -> 02_derived_rate.json
+python dag/run.py --phase calculate      # Run full calculation phase
+```
+
+### 3. Test safety circuit breakers:
+```bash
+python dag/run.py --validate delay       # Verify minimumUpdateDelayInSeconds
+python dag/run.py --validate bounds      # Verify rate change bounds (upper/lower BPS)
+python dag/run.py --validate circuit_breaker # Final Go / No-Go verdict -> 03_validation_verdict.json
+python dag/run.py --phase validate       # Run all safety checks
+```
+
+### 4. Test broadcasting (Dry-run simulation & Live):
+```bash
+python dag/run.py --broadcast simulate   # Simulate on-chain call via eth_call (no gas spent)
+python dag/run.py --broadcast live       # Sign & broadcast to AccountantWithRateProviders
+```
+
+### 5. Test storage & reporting:
+```bash
+python dag/run.py --report sqlite        # Append snapshot to SQLite rate_history table
+python dag/run.py --report markdown      # Generate value_check_*.md audit report
+python dag/run.py --report html          # Rebuild interactive HTML dashboard
+python dag/run.py --phase report         # Run full reporting phase
+```
+
+### 6. Full end-to-end pipeline:
+```bash
+python dag/run.py --all                  # Complete run with safe dry-run simulation
+python dag/run.py --all --live           # Complete run with live testnet broadcast
+```
+
+---
+
+## Legacy Pipeline (`dag/main.py`)
+
 
 ### Optional flags
 
