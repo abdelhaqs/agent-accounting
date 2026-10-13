@@ -1,11 +1,11 @@
 [
   {
-    "timestamp": "2026-10-12 20:19:55 UTC",
-    "total_usdc": 50.0,
+    "timestamp": "2026-10-13 23:46:12 UTC",
+    "total_usdc": 55.0,
     "total_shares": 50.0,
-    "exchange_rate": 1.0,
+    "exchange_rate": 1.1,
     "breakdown": {
-      "vault": 50.0,
+      "vault": 55.0,
       "bridge": 0.0,
       "cctp_inflight": 0.0,
       "zyfai": 0.0,
