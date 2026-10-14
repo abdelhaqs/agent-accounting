@@ -5,6 +5,9 @@ import logging
 from typing import Any
 import requests
 
+import urllib3
+urllib3.disable_warnings()
+
 logger = logging.getLogger(__name__)
 
 # Function selectors
@@ -33,7 +36,8 @@ def rpc_call(rpc_url: str, method: str, params: list[Any]) -> Any:
         "method": method,
         "params": params,
     }
-    resp = requests.post(rpc_url, json=payload, timeout=15)
+    headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+    resp = requests.post(rpc_url, json=payload, headers=headers, verify=False, timeout=30)
     resp.raise_for_status()
     data = resp.json()
     if "error" in data:
