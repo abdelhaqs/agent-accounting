@@ -1,7 +1,7 @@
 # Value Check & On-Chain Reconciliation Report
 
-**Execution Run ID:** `20261101_120150`  
-**Run Timestamp:** 2026-11-01 12:01:50 UTC  
+**Execution Run ID:** `20261101_200114`  
+**Run Timestamp:** 2026-11-01 20:01:14 UTC  
 **Primary Source:** **UNIBLOCK**  
 **Cross-Check Layer:** **Base On-Chain JSON-RPC** (`https://mainnet.base.org`)  
 **Total Agents Audited:** 8  
@@ -11,10 +11,10 @@
 ## 1. Executive Summary
 
 - **Audit Health Score:** **8/8 Agents Healthy (100.0%)**
-- **Total Capital Tracked (USD):** **$67,601.30**
-- **On-Chain Verified Value:** **$67,190.52**
-- **Unverified / Reward Assets:** **$414.72**
-- **Net On-Chain Delta:** **-0.006%**
+- **Total Capital Tracked (USD):** **$67,601.48**
+- **On-Chain Verified Value:** **$67,194.62**
+- **Unverified / Reward Assets:** **$414.59**
+- **Net On-Chain Delta:** **-0.011%**
 
 ### Status Breakdown:
 - **OK (Healthy):** 8
@@ -28,15 +28,15 @@
 
 | Agent Name | Address | Provider | Stored Value (USD) | Same-Provider (Raw) | On-Chain Verified (RPC) | On-Chain Unverified | On-Chain Delta (%) | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Yieldseeker Base Agent 1** | `0x4081...b414` | debank | **$2,031.45** | $2,031.45 | **$2,031.53** | $0.00 | **-0.004%** | **OK** |
-| **Yieldseeker Base Agent 2** | `0xe51b...1597` | debank | **$10,198.36** | $10,198.36 | **$9,796.07** | +$402.39 | **-0.001%** | **OK** |
-| **ZyFAI Base Agent 2** | `0xbf96...e7eb` | debank | **$47,727.01** | $48,176.45 | **$47,727.88** | +$1.47 | **-0.005%** | **OK** |
-| **Mamo Base Agent 1** | `0x7c4f...62dd` | debank | **$2,167.96** | $2,167.96 | **$2,162.71** | +$5.53 | **-0.013%** | **OK** |
-| **Zyfai AB Risky Agent** | `0x6a9e...015b` | debank | **$0.05** | $22.73 | **$0.00** | +$0.05 | **-0.016%** | **OK** |
-| **Mamo AB Agent** | `0x7d42...b256` | debank | **$5,475.11** | $5,475.11 | **$5,472.15** | +$4.09 | **-0.021%** | **OK** |
-| **Zyfai Yield Maxing Agent** | `0x3de5...b6b6` | debank | **$0.37** | $122.63 | **$0.17** | +$0.20 | **-0.011%** | **OK** |
-| **Conservative Zyfai Agent** | `0xc811...4774` | debank | **$0.98** | $0.98 | **$0.00** | +$0.98 | **+0.001%** | **OK** |
-| **TOTAL** | — | — | **$67,601.30** | **$68,195.67** | **$67,190.52** | **+$414.72** | **-0.006%** | **8/8 HEALTHY** |
+| **Yieldseeker Base Agent 1** | `0x4081...b414` | debank | **$2,031.55** | $2,031.55 | **$2,031.62** | $0.00 | **-0.004%** | **OK** |
+| **Yieldseeker Base Agent 2** | `0xe51b...1597` | debank | **$10,198.36** | $10,198.36 | **$9,796.82** | +$402.39 | **-0.008%** | **OK** |
+| **ZyFAI Base Agent 2** | `0xbf96...e7eb` | debank | **$47,727.01** | $48,175.15 | **$47,730.11** | +$1.47 | **-0.010%** | **OK** |
+| **Mamo Base Agent 1** | `0x7c4f...62dd` | debank | **$2,168.11** | $2,168.11 | **$2,162.99** | +$5.47 | **-0.016%** | **OK** |
+| **Zyfai AB Risky Agent** | `0x6a9e...015b` | debank | **$0.05** | $22.66 | **$0.00** | +$0.05 | **-0.016%** | **OK** |
+| **Mamo AB Agent** | `0x7d42...b256` | debank | **$5,475.05** | $5,475.05 | **$5,472.90** | +$4.04 | **-0.034%** | **OK** |
+| **Zyfai Yield Maxing Agent** | `0x3de5...b6b6` | debank | **$0.37** | $122.27 | **$0.17** | +$0.20 | **-0.007%** | **OK** |
+| **Conservative Zyfai Agent** | `0xc811...4774` | debank | **$0.98** | $0.98 | **$0.00** | +$0.98 | **+0.003%** | **OK** |
+| **TOTAL** | — | — | **$67,601.48** | **$68,194.13** | **$67,194.62** | **+$414.59** | **-0.011%** | **8/8 HEALTHY** |
 
 ---
 
@@ -44,42 +44,42 @@
 
 ### 3.1. Yieldseeker Base Agent 1 (`0x40813df8a23534783e99031fe4f57a65aceeb414`)
 - **Reconciliation Status:** `OK`
-- **Stored Pipeline Total:** `$2,031.45`
-- **On-Chain Verified Total:** `$2,031.53` (delta: -0.004%)
+- **Stored Pipeline Total:** `$2,031.55`
+- **On-Chain Verified Total:** `$2,031.62` (delta: -0.004%)
 - **Verified Assets Breakdown:**
-  - `USDC`: $2,031.53 (Morpho vault `0xee8f4ec5...`)
+  - `USDC`: $2,031.62 (Morpho vault `0xee8f4ec5...`)
 
 ### 3.2. Yieldseeker Base Agent 2 (`0xe51b7dba38e732a19838c3f23816df7092441597`)
 - **Reconciliation Status:** `OK`
 - **Stored Pipeline Total:** `$10,198.36`
-- **On-Chain Verified Total:** `$9,796.07` (delta: -0.001%)
+- **On-Chain Verified Total:** `$9,796.82` (delta: -0.008%)
 - **Unverified / Reward Assets:** `$402.39`
 - **Verified Assets Breakdown:**
   - `USDC`: $0.00 (wallet token)
   - `USDC` (unverified/reward): $402.31
   - `USDC` (unverified/reward): $0.06
   - `USDC`: $0.00 (Moonwell market `0xedc817a2...`)
-  - `USDC`: $9,796.07 (Morpho vault `0x5435bc53...`)
+  - `USDC`: $9,796.82 (Morpho vault `0x5435bc53...`)
 
 ### 3.3. ZyFAI Base Agent 2 (`0xbf96c935f7cb35b86efaa0693d81d875f4b4e7eb`)
 - **Reconciliation Status:** `OK`
 - **Stored Pipeline Total:** `$47,727.01`
-- **On-Chain Verified Total:** `$47,727.88` (delta: -0.005%)
+- **On-Chain Verified Total:** `$47,730.11` (delta: -0.010%)
 - **Unverified / Reward Assets:** `$1.47`
 - **Verified Assets Breakdown:**
   - `USDC`: $0.00 (wallet token)
   - `USDC` (unverified/reward): $0.02
   - `USDC` (unverified/reward): $1.45
-  - `USDC`: $8,647.98 (Morpho vault `0x236919f1...`)
-  - `USDC`: $39,079.90 (Morpho vault `0xee8f4ec5...`)
+  - `USDC`: $8,648.39 (Morpho vault `0x236919f1...`)
+  - `USDC`: $39,081.72 (Morpho vault `0xee8f4ec5...`)
 
 ### 3.4. Mamo Base Agent 1 (`0x7c4f5efce7ebd0e99d9d38cad4573140087162dd`)
 - **Reconciliation Status:** `OK`
-- **Stored Pipeline Total:** `$2,167.96`
-- **On-Chain Verified Total:** `$2,162.71` (delta: -0.013%)
-- **Unverified / Reward Assets:** `$5.53`
+- **Stored Pipeline Total:** `$2,168.11`
+- **On-Chain Verified Total:** `$2,162.99` (delta: -0.016%)
+- **Unverified / Reward Assets:** `$5.47`
 - **Verified Assets Breakdown:**
-  - `WELL`: $1.59 (wallet token)
+  - `WELL`: $1.57 (wallet token)
   - `OpenAI`: n/a (wallet token)
   - `Basecat`: n/a (wallet token)
   - `OpenAI`: n/a (wallet token)
@@ -99,8 +99,8 @@
   - `OpenAI`: n/a (wallet token)
   - `OpenAI`: n/a (wallet token)
   - `FLAP`: n/a (wallet token)
-  - `WELL` (unverified/reward): $1.35
-  - `USDC`: $2,161.12 (Moonwell market `0xedc817a2...`)
+  - `WELL` (unverified/reward): $1.33
+  - `USDC`: $2,161.41 (Moonwell market `0xedc817a2...`)
 
 ### 3.5. Zyfai AB Risky Agent (`0x6a9e4e59df3e65fdb6a2f8d1ab6f0cd3943c015b`)
 - **Reconciliation Status:** `OK`
@@ -115,16 +115,16 @@
 
 ### 3.6. Mamo AB Agent (`0x7d42ae4ec4367b52dc03abfc077461cf5c48b256`)
 - **Reconciliation Status:** `OK`
-- **Stored Pipeline Total:** `$5,475.11`
-- **On-Chain Verified Total:** `$5,472.15` (delta: -0.021%)
-- **Unverified / Reward Assets:** `$4.09`
+- **Stored Pipeline Total:** `$5,475.05`
+- **On-Chain Verified Total:** `$5,472.90` (delta: -0.034%)
+- **Unverified / Reward Assets:** `$4.04`
 - **Verified Assets Breakdown:**
-  - `USDC`: $5,472.15 (Moonwell market `0xedc817a2...`)
+  - `USDC`: $5,472.90 (Moonwell market `0xedc817a2...`)
 
 ### 3.7. Zyfai Yield Maxing Agent (`0x3de51ddb55ffec013f428288559dd993e9eeb6b6`)
 - **Reconciliation Status:** `OK`
 - **Stored Pipeline Total:** `$0.37`
-- **On-Chain Verified Total:** `$0.17` (delta: -0.011%)
+- **On-Chain Verified Total:** `$0.17` (delta: -0.007%)
 - **Unverified / Reward Assets:** `$0.20`
 - **Verified Assets Breakdown:**
   - `UP`: $0.00 (wallet token)
@@ -146,7 +146,7 @@
 ### 3.8. Conservative Zyfai Agent (`0xc8118008228edd4769fe42f091e7d099a45c4774`)
 - **Reconciliation Status:** `OK`
 - **Stored Pipeline Total:** `$0.98`
-- **On-Chain Verified Total:** `$0.00` (delta: +0.001%)
+- **On-Chain Verified Total:** `$0.00` (delta: +0.003%)
 - **Unverified / Reward Assets:** `$0.98`
 - **Verified Assets Breakdown:**
   - `WETH`: $0.00 (wallet token)
